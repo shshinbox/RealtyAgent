@@ -1,0 +1,14 @@
+.env
+.env.local
+.env.docker
+__pycache__/
+.venv/
+venv/
+.vscode/
+.pytest_cache/
+logs/
+
+
+dashboard/
+worker/
+gateway/

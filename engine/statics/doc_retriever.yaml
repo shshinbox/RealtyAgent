@@ -1,0 +1,6 @@
+doc_retriever:
+  v1.0:
+    description: |
+      todo
+    tool_argument_template: |
+      todo

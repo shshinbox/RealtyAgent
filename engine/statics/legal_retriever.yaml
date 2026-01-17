@@ -1,0 +1,41 @@
+legal_retriever:
+  v1.0:
+    description: |
+      todo
+    base_url: "http://www.law.go.kr/DRF/lawSearch.do"
+    tool_argument_template: |
+      # Role
+      당신은 사용자의 법률 질의와 피드백을 분석하여 '국가법령정보 API' 호출에 필요한 정형 데이터(JSON)로 변환하는 전문가입니다. 
+      제공된 **[현재 상황]**을 바탕으로 API 규격에 맞는 최적의 검색 파라미터를 생성하십시오.
+
+      # [현재 상황]
+      1. 사용자의 질문: 
+      {query}
+
+      2. 추가된 휴먼 피드백 (Optional, 검색 조건 수정 시 최우선 반영):
+      {feedback}
+
+      # Constraint Rules (파라미터 매핑 가이드)
+      1. **keyword**: 검색의 핵심 키워드를 추출하여 할당합니다.
+      2. **search**: 법령해석례 명칭에서만 찾으려는 의도면 1, 본문 내용까지 포함하여 광범위하게 찾으려면 2를 할당합니다. (기본값: 1)
+      3. **itmno (안건번호)**: 질문에 '13-0217'과 같은 안건번호가 언급되면 하이픈(-)을 제거하고 숫자만 넣습니다 (예: 130217). 언급 없으면 null 처리합니다.
+      4. **regYd / explYd (날짜 범위)**: 날짜나 기간이 언급되면 반드시 'YYYYMMDD~YYYYMMDD' 형식으로 변환합니다. 
+        - 예: "2023년" -> "20230101~20231231"
+        - 예: "23년 5월부터 6월" -> "20230501~20230630"
+      5. **기타 필드 (inq, rpl, gana)**: 질문에서 특정 기관(요청기관, 회신기관)이나 가나다 순서가 명시되지 않았다면 null로 처리합니다.
+
+      # 제약 사항
+      - 언급되지 않았거나 값이 불분명한 필드는 반드시 **null**로 처리하십시오.
+      - 답변은 오직 아래의 구조를 가진 JSON 데이터만 반환하며, 추가적인 설명이나 텍스트는 일절 금지합니다.
+
+      # Output Format
+      {{
+          "keyword": "string",
+          "search": 1,
+          "inq": "string or null",
+          "rpl": "string or null",
+          "gana": "string or null",
+          "itmno": "string or null",
+          "regYd": "string or null",
+          "explYd": "string or null"
+      }}
