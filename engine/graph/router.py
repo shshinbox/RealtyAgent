@@ -11,8 +11,7 @@ from .state import AgentState, StateKey, StateManager
 
 def route_after_dispatcher(state: AgentState) -> NodeType:
     sm: StateManager = StateManager(state=state)
-    next_node: NodeType = sm.next_node
-    return next_node
+    return sm.next_node
 
 
 def route_after_verifier(state: AgentState) -> NodeType:
@@ -39,12 +38,13 @@ def route_after_evaluator(state: AgentState) -> NodeType:
     if not evaluation_response.is_safe():
         return NodeType.HUMAN_REVIEWER
 
-    return NodeType.END_NODE
+    return NodeType.DISPATCHER
 
 
 def route_after_human(state: AgentState) -> NodeType:
     sm: StateManager = StateManager(state=state)
     human_feedback: HumanFeedback = sm.human_feedback
+    answer: str = sm.answer
 
     match human_feedback.human_action:
         case HumanAction.REPLAN:
@@ -52,6 +52,7 @@ def route_after_human(state: AgentState) -> NodeType:
         case HumanAction.REWRITE:
             return NodeType.GENERATOR
         case HumanAction.APPROVE:
-            return NodeType.END_NODE
+            return NodeType.DISPATCHER
+
         case _:
             raise ValueError(f"Unknown action: {human_feedback.human_action}")

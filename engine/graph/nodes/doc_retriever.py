@@ -10,7 +10,7 @@ from .base import ToolNode
 
 
 class DocumentsRetriever(ToolNode[DocumentSearchQuery]):  # todo
-    def __init__(self, llm: BaseChatModel, version: str) -> None:
-        super().__init__(NodeType.DOC_RETRIEVER, DocumentSearchQuery, llm, version)
+    def __init__(self, llm: BaseChatModel) -> None:
+        super().__init__(NodeType.DOC_RETRIEVER, DocumentSearchQuery, llm)
 
-    def _execute_tool(self, args: LegalSearchQuery) -> dict: ...
+    async def _execute_tool(self, args: LegalSearchQuery) -> dict: ... # 벡터디비 유사도 기반 문서 검색

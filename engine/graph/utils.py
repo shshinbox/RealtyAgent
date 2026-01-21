@@ -3,6 +3,10 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Any
 import importlib.resources
+import asyncio
+from functools import wraps
+from langchain_core.messages import BaseMessage, message_to_dict
+from pydantic import BaseModel
 
 
 class AgentSpecLoader:
@@ -26,7 +30,7 @@ class AgentSpecLoader:
             raise ValueError(f"Failed to parse YAML for {name_str}: {e}")
 
     @classmethod
-    def load_elements(cls, agent_name: str, element: str, version: str) -> Any:
+    def load_elements(cls, agent_name: str, element: str, version: str = "v1.0") -> Any:
         data = cls.load_yaml(agent_name)
         val = data.get(version, {}).get(element)
         if val in (None, "", [], {}):
@@ -36,13 +40,13 @@ class AgentSpecLoader:
         return val
 
     @classmethod
-    def load_prompt(cls, agent_name: str, version: str) -> str:
+    def load_prompt(cls, agent_name: str, version: str = "v1.0") -> str:
         return cls.load_elements(agent_name, "template", version)
 
     @classmethod
-    def load_description(cls, agent_name: str, version: str) -> str:
+    def load_description(cls, agent_name: str, version: str = "v1.0") -> str:
         return cls.load_elements(agent_name, "description", version)
 
     @classmethod
-    def load_tool_argument_prompt(cls, agent_name: str, version: str) -> str:
+    def load_tool_argument_prompt(cls, agent_name: str, version: str = "v1.0") -> str:
         return cls.load_elements(agent_name, "tool_argument_template", version)

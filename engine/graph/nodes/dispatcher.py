@@ -9,12 +9,15 @@ class Dispatcher(BaseNode):
     def __init__(self) -> None:
         self.key = NodeType.DISPATCHER
 
-    def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState) -> dict:
         sm: StateManager = StateManager(state=state)
         planner_response: PlannerResponse = sm.planner_response
 
         if planner_response.is_exhausted():
-            next_node: NodeType = NodeType.GENERATOR
+            if not sm.answer:
+                next_node: NodeType = NodeType.GENERATOR
+            else:
+                next_node: NodeType = NodeType.FINALIZER
         else:
             next_node: NodeType = planner_response.pop_stack()
 

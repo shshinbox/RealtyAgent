@@ -13,10 +13,10 @@ from ..schema import (
 
 
 class Generator(LLMNode[GeneratorResponse]):
-    def __init__(self, llm: BaseChatModel, version: str) -> None:
-        super().__init__(NodeType.GENERATOR, GeneratorResponse, llm, version)
+    def __init__(self, llm: BaseChatModel) -> None:
+        super().__init__(NodeType.GENERATOR, GeneratorResponse, llm)
 
-    def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState) -> dict:
         sm: StateManager = StateManager(state=state)
 
         trimmed_msgs = trim_messages(
@@ -38,7 +38,7 @@ class Generator(LLMNode[GeneratorResponse]):
             feedback=feedback,
         )
 
-        response: GeneratorResponse = self._ask_llm(prompt)
+        response: GeneratorResponse = await self._ask_llm(prompt)
 
         return self._create_success_response(
             messages=[AIMessage(content=f"답변: {response.answer}")],

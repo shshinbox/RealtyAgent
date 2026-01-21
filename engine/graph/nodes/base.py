@@ -16,19 +16,18 @@ class BaseNode(ABC):
     def __init__(self, node_type: NodeType):
         self.key = node_type
 
-    def __call__(self, state: AgentState) -> dict[str, Any]:
+    async def __call__(self, state: AgentState) -> dict[str, Any]:
         try:
-            return self._run(state)
+            return await self._run(state)
         except SecurityError as se:
             logger.warning(f"[Security Alert] {self.key}: {str(se)}")
-            # raise
             return self._create_error_response(str(se))
         except Exception as e:
             logger.error(f"[Node Error] {self.key} | Error: {str(e)}", exc_info=True)
             return self._create_error_response(str(e))
 
     @abstractmethod
-    def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState) -> dict:
         raise NotImplementedError(
             f"Subclasses of {self.key} must implement the 'run' method."
         )
@@ -46,27 +45,23 @@ P = TypeVar("P", bound=BaseModel)
 
 
 class ToolNode(BaseNode, Generic[P]):
-    def __init__(
-        self, node_type: NodeType, arg_schema: Type[P], llm: BaseChatModel, version: str
-    ):
+    def __init__(self, node_type: NodeType, arg_schema: Type[P], llm: BaseChatModel):
         self.key = node_type
         self.arg_schema = arg_schema
         self.spec = AgentSpecLoader.load_yaml(self.key)
         self.argument_generator = llm.with_structured_output(arg_schema)
 
-        self.prompt_template = AgentSpecLoader.load_tool_argument_prompt(
-            self.key, version
-        )
+        self.prompt_template = AgentSpecLoader.load_tool_argument_prompt(self.key)
 
-    def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState) -> dict:
         sm: StateManager = StateManager(state=state)
         query: str = sm.refined_query or sm.query
         feedback_content: str = sm.feedback
 
         formatted_prompt: str = self.prompt_template.format(
-            query=query, feedback=feedback_content
+            query=query, feedback=feedback_content, api_args=sm.api_args
         )
-        raw_response = self.argument_generator.invoke(formatted_prompt)
+        raw_response = await self.argument_generator.ainvoke(formatted_prompt)
 
         if not isinstance(raw_response, self.arg_schema):
             raise TypeError(
@@ -75,17 +70,18 @@ class ToolNode(BaseNode, Generic[P]):
             )
 
         api_args = cast(P, raw_response)
-        search_result = self._execute_tool(api_args)
+        search_result = await self._execute_tool(api_args)
 
         return self._create_success_response(
             update_dict={
                 StateKey.RETRIEVED_DOCS: {self.key: search_result},
                 StateKey.VERIFIER_TARGET_NODE: self.key,
+                StateKey.API_ARGS: {self.key: api_args},
             },
         )
 
     @abstractmethod
-    def _execute_tool(self, args: P) -> dict:
+    async def _execute_tool(self, args: P) -> dict:
         raise NotImplementedError(
             f"Subclasses of {self.key} must implement the '_execute_tool' method."
         )
@@ -100,17 +96,14 @@ class LLMNode(BaseNode, Generic[T]):
         node_type: NodeType,
         output_type: Type[T],
         llm: BaseChatModel,
-        version: str,
     ) -> None:
         self.key = node_type
         self.output_type = output_type
         self.llm = llm.with_structured_output(output_type)
-        self.prompt_template = AgentSpecLoader.load_prompt(
-            agent_name=self.key, version=version
-        )
+        self.prompt_template = AgentSpecLoader.load_prompt(agent_name=self.key)
 
-    def _ask_llm(self, prompt: str) -> T:
-        result = self.llm.invoke(prompt)
+    async def _ask_llm(self, prompt: str) -> T:
+        result = await self.llm.ainvoke(prompt)
         if isinstance(result, self.output_type):
             return cast(T, result)
         raise TypeError(

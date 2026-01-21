@@ -13,7 +13,7 @@ class NodeType(StrEnum):
     VERIFIER = auto()
     GENERATOR = auto()
     EVALUATOR = auto()
-    END_NODE = auto()
+    FINALIZER = auto()
 
 
 class PlannerResponse(BaseModel):
@@ -37,18 +37,18 @@ class PlannerResponse(BaseModel):
         return self.node_stack[0]
 
 
+class HumanAction(StrEnum):
+    REPLAN = auto()
+    REWRITE = auto()
+    APPROVE = auto()
+
+
 class HumanFeedback(BaseModel):
     content: Optional[str] = Field(description="사용자 피드백 정보")
     human_action: Optional[HumanAction] = Field(description="사용자의 다음 요청")
 
     def set_human_action(self, action: HumanAction):
         self.human_action = action
-
-
-class HumanAction(StrEnum):
-    REPLAN = auto()
-    REWRITE = auto()
-    APPROVE = auto()
 
 
 class HumanFeedbackResponse(BaseModel):
@@ -80,11 +80,11 @@ class DocumentSearchQuery(BaseModel):
 
 class EvaluationResponse(BaseModel):
     is_secured: bool = Field(description="프롬프트 공격 여부")
-    is_hallucination: bool = Field(description="환각 여부")
-    is_include_pii: bool = Field(description="답변에 포함된 개인정보 여부")
+    is_grounded: bool = Field(description="환각 여부")
+    has_pii: bool = Field(description="개인정보 포함 여부")
 
     def is_safe(self):
-        return self.is_secured and not self.is_hallucination and not self.is_include_pii
+        return self.is_secured and self.is_grounded and not self.has_pii
 
 
 class CircuitCheck(BaseModel):
@@ -101,9 +101,9 @@ class CircuitCheck(BaseModel):
         )
 
     def is_over_limit(self, node_type: NodeType) -> bool:
-        return self.circuit_stat.get(node_type, 0) > self.LIMIT
+        return self.circuit_stat.get(node_type, 0) >= self.LIMIT
 
-    def increase(self, node_type: NodeType) -> CircuitCheck:
+    def increase(self, node_type: NodeType) -> "CircuitCheck":
         new_stat = self.circuit_stat.copy()
         new_stat[node_type] = new_stat.get(node_type, 0) + 1
         return self.model_copy(update={"circuit_stat": new_stat})

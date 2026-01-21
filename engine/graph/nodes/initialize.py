@@ -3,11 +3,12 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage, System
 import requests
 
 from ..state import AgentState, StateKey, StateManager
-from ..schema import NodeType, PlannerResponse, EvaluationResponse
+from ..schema import NodeType, PlannerResponse, EvaluationResponse, CircuitCheck
 from .base import BaseNode
 from ..utils import AgentSpecLoader
-from ..tools import GuardPrompt
+from ...security.guard import PromptGuard
 from ...error.errors import SecurityError
+from ..logger import logger
 
 
 class Initializer(BaseNode):
@@ -17,15 +18,15 @@ class Initializer(BaseNode):
             self.key, "system_prompt", "v1.0"
         )
 
-    def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState) -> dict:
         sm: StateManager = StateManager(state=state)
 
         raw_query: str = sm.query
 
-        guard_prompt: GuardPrompt = GuardPrompt()
+        promptguard: PromptGuard = PromptGuard()
 
-        if not guard_prompt.is_secured([HumanMessage(content=raw_query)]):
-            raise SecurityError(node_name=self.key, context={StateKey.QUERY: raw_query})
+        if not await promptguard.is_secured([HumanMessage(content=raw_query)]):
+            logger.warning(f"Prompt Guard Alert: Potential prompt injection detected.")
 
         return self._create_success_response(
             messages=[
@@ -34,5 +35,8 @@ class Initializer(BaseNode):
             ],
             update_dict={
                 StateKey.QUERY: raw_query,
+                StateKey.RETRIEVED_DOCS: {},
+                StateKey.API_ARGS: {},
+                StateKey.CIRCUIT_CHECK: CircuitCheck.initialize(),
             },
         )

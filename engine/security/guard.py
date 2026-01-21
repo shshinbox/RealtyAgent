@@ -1,5 +1,5 @@
 import requests
-from typing import List, Union
+from typing import List, Union, Any
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
@@ -7,19 +7,24 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
-from .config import config_settings
+from ..graph.logger import logger
+from ..graph.config import config_settings
 
 
-class GuardPrompt:
+class PromptGuard:
     def __init__(self):
         self.BASE_URL = "https://api.lakera.ai/v2/guard"
 
-    def is_secured(self, messages: List[BaseMessage]) -> bool:
-        result = self._guard_messages(messages)
-        return not result.get("flagged", False)
+    async def is_secured(self, messages: List[BaseMessage]) -> bool:
+        try:
+            result = await self._guard_messages(messages)
+            return not result.get("flagged", False)
+        except Exception as e:
+            logger.warning(f"PromptGuard failed. error: {str(e)}")
+            return False
 
-    def _guard_messages(self, messages: List[BaseMessage]) -> dict:
-        lakera_messages = self._map_langchain_to_lakera(messages)
+    async def _guard_messages(self, messages: List[BaseMessage]) -> dict:
+        lakera_messages = self._map_langchain_to_dict(messages)
 
         session = requests.Session()
         response = session.post(
@@ -32,7 +37,7 @@ class GuardPrompt:
         response.raise_for_status()
         return response.json()
 
-    def _map_langchain_to_lakera(self, messages: List[BaseMessage]) -> List[dict]:
+    def _map_langchain_to_dict(self, messages: List[BaseMessage]) -> List[dict]:
         mapped_messages = []
 
         for msg in messages:
@@ -56,8 +61,3 @@ class GuardPrompt:
             mapped_messages.append({"role": role, "content": str(content)})
 
         return mapped_messages
-
-
-class HallucinationDetector:
-    def __init__(self):
-        self.BASE_URL = ""

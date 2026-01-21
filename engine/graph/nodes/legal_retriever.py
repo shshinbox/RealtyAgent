@@ -11,11 +11,11 @@ from .base import ToolNode
 
 
 class LegalRetriever(ToolNode[LegalSearchQuery]):
-    def __init__(self, llm: BaseChatModel, version: str) -> None:
-        super().__init__(NodeType.LEGAL_RETRIEVER, LegalSearchQuery, llm, version)
-        self.base_url = AgentSpecLoader.load_elements(self.key, "base_url", version)
+    def __init__(self, llm: BaseChatModel) -> None:
+        super().__init__(NodeType.LEGAL_RETRIEVER, LegalSearchQuery, llm)
+        self.base_url = AgentSpecLoader.load_elements(self.key, "base_url")
 
-    def _execute_tool(self, args: LegalSearchQuery) -> dict:
+    async def _execute_tool(self, args: LegalSearchQuery) -> dict:
         api_params = {
             "OC": config_settings.KOREAN_LAW_OC,
             "target": "expc",

@@ -13,10 +13,10 @@ from .base import LLMNode
 
 
 class Planner(LLMNode[PlannerResponse]):
-    def __init__(self, llm: BaseChatModel, version: str) -> None:
-        super().__init__(NodeType.PLANNER, PlannerResponse, llm, version)
+    def __init__(self, llm: BaseChatModel) -> None:
+        super().__init__(NodeType.PLANNER, PlannerResponse, llm)
 
-    def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState) -> dict:
         sm: StateManager = StateManager(state=state)
 
         raw_query: str = sm.query
@@ -27,9 +27,7 @@ class Planner(LLMNode[PlannerResponse]):
             human_feedback=feedback_content,
         )
 
-        response: PlannerResponse = self._ask_llm(prompt)
-
-        print(response)
+        response: PlannerResponse = await self._ask_llm(prompt)
 
         return self._create_success_response(
             update_dict={
