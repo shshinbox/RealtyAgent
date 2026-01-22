@@ -2,7 +2,7 @@
 
 ## 📌 개요
 
-본 프로젝트는 기존 PoC 버전([real-estate-agent](https://github.com/shshinbox/real-estate-agent))에서의 선형적 워크플로우의 한계와 상태 제어의 어려움을 극복하기 위해 LangGraph를 도입한 고도화 버전입니다.
+본 프로젝트는 기존 버전([real-estate-agent](https://github.com/shshinbox/real-estate-agent))에서의 선형적 워크플로우의 한계와 상태 제어의 어려움을 극복하기 위해 LangGraph를 도입한 고도화 버전입니다.
 
 단순 답변 생성을 넘어 도구 선택과 결과 검증, 그리고 API 조회 결과가 불충분할 경우 검색 쿼리를 재구성하여 재시도하는 자가 수정 기능을 수행하는 상태(State) 기반 순환형 엔진을 지향합니다.
 
@@ -120,8 +120,8 @@ BaseNode
 
 ---
 
-#### 1. Logic-Centric Orchestration (의존도 최적화)
-* **판단 의존도 제어**: 모든 분기점과 판단을 LLM에 과도하게 의탁하는 구조를 지양하고, 핵심 비즈니스 로직은 확정적으로 설계하되 유연한 대응이 필수적인 Planner 영역에만 자율성을 선별적으로 부여
+#### 1. Logic-Centric Orchestration (판단 의존도 최적화)
+* **판단 의존도 제어**: 모든 분기점과 판단을 LLM에 과도하게 위임하는 구조를 지양하고, 핵심 비즈니스 로직은 확정적으로 설계하되 유연한 대응이 필수적인 Planner 영역에만 자율성을 선별적으로 부여
 
 #### 2. Dynamic Planning
 * **Planner-Executor**: 질문 의도를 분석해 실행 노드(node_stack)를 실시간으로 유연하게 구성
@@ -135,7 +135,5 @@ BaseNode
 
 #### 5. Self-Correction
 * **자가 수정**: API 결과가 없을 때 쿼리를 재구성하여 재시도를 수행하며, Max Retries 도달 시 다음 단계로 전이
-
-
 
 ---
