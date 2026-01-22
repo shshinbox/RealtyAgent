@@ -8,7 +8,7 @@ def setup_logger(name: str = "RealtyAgent"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    log_dir = Path("logs")
+    log_dir = Path("logs/engine")
     log_dir.mkdir(exist_ok=True)
 
     console_handler = logging.StreamHandler(sys.stdout)

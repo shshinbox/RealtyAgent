@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional, cast
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.checkpoint.redis.aio import AsyncRedisSaver
@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from .state import StateKey, HumanFeedback
+from .state import StateKey, HumanFeedback, AgentState
 from .schema import NodeType
 from .workflow import build_workflow
 
@@ -68,14 +68,19 @@ class GraphEngine:
         async for event in self._app.astream_events(None, config, version="v2"):
             yield event
 
-    async def get_state(self, user_id: str, thread_id: str):
+    async def get_state(self, user_id: str, thread_id: str) -> Optional[AgentState]:
         """
         현재 워크플로우의 상태를 확인한다.
         """
         config: RunnableConfig = self._configurable(
             user_id=user_id, thread_id=thread_id
         )
-        return await self._app.aget_state(config)
+        snapshot = await self._app.aget_state(config)
+
+        if not snapshot or not snapshot.values:
+            return None
+        
+        return cast(AgentState, snapshot.values)
 
     def _configurable(self, user_id: str, thread_id: str) -> RunnableConfig:
         checkpoint_id: str = self._checkpoint_id(user_id, thread_id)

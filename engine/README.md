@@ -120,17 +120,22 @@ BaseNode
 
 ---
 
-#### 1. Dynamic Planning
-* **Planner-Executor**: 질문 의도를 분석해 실행 노드(`node_stack`)를 실시간으로 유연하게 구성
+#### 1. Logic-Centric Orchestration (의존도 최적화)
+* **판단 의존도 제어**: 모든 분기점과 판단을 LLM에 과도하게 의탁하는 구조를 지양하고, 핵심 비즈니스 로직은 확정적으로 설계하되 유연한 대응이 필수적인 Planner 영역에만 자율성을 선별적으로 부여
+
+#### 2. Dynamic Planning
+* **Planner-Executor**: 질문 의도를 분석해 실행 노드(node_stack)를 실시간으로 유연하게 구성
 * **선택적 인터럽트**: 사용자 요청 시에만 전략적으로 확인 단계 배치
 
-#### 2. AI Security & Safety
-* **노드별 가드레일**: `query` 및 `Retriever` 응답 결과 내 인젝션 의심 경고, `Generator` 출력 후 환각 및 프라이버시 체크
+#### 3. AI Security & Safety
+* **노드별 가드레일**: query 및 Retriever 응답 결과 내 인젝션 의심 경고, Generator 출력 후 환각 및 프라이버시 체크
 
-#### 3. Human-in-the-Loop
+#### 4. Human-in-the-Loop
 * **재기획 및 검증**: 사용자 개입 상황을 모사하여 비동기 입력 기반의 피드백을 반영해 이후 실행 계획을 실시간으로 수정
 
-#### 4. Self-Correction
-* **자가 수정**: API 결과가 없을 때 쿼리를 재구성하여 재시도를 수행하며, `Max Retries` 도달 시 다음 단계로 전이
+#### 5. Self-Correction
+* **자가 수정**: API 결과가 없을 때 쿼리를 재구성하여 재시도를 수행하며, Max Retries 도달 시 다음 단계로 전이
+
+
 
 ---
