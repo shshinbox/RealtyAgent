@@ -68,7 +68,7 @@ class GraphEngine:
         async for event in self._app.astream_events(None, config, version="v2"):
             yield event
 
-    async def get_state(self, user_id: str, thread_id: str) -> Optional[AgentState]:
+    async def get_state(self, user_id: str, thread_id: str):
         """
         현재 워크플로우의 상태를 확인한다.
         """
@@ -77,10 +77,7 @@ class GraphEngine:
         )
         snapshot = await self._app.aget_state(config)
 
-        if not snapshot or not snapshot.values:
-            return None
-        
-        return cast(AgentState, snapshot.values)
+        return snapshot
 
     def _configurable(self, user_id: str, thread_id: str) -> RunnableConfig:
         checkpoint_id: str = self._checkpoint_id(user_id, thread_id)
