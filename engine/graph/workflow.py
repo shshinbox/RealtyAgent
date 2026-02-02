@@ -22,17 +22,21 @@ from .nodes.evaluator import Evaluator
 from .nodes.finalizer import Finalizer
 
 
-def build_workflow(llm: BaseChatModel) -> StateGraph:
+def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
     workflow: StateGraph = StateGraph(AgentState)
 
     initializer: Initializer = Initializer()
-    planner: Planner = Planner(llm=llm)
+    planner: Planner = Planner(llm=llm_map[NodeType.PLANNER])
     dispatcher: Dispatcher = Dispatcher()
-    legal_retriever: LegalRetriever = LegalRetriever(llm=llm)
-    doc_retriever: DocumentsRetriever = DocumentsRetriever(llm=llm)
-    human_reviewer: HumanReviewer = HumanReviewer(llm=llm)
+    legal_retriever: LegalRetriever = LegalRetriever(
+        llm=llm_map[NodeType.LEGAL_RETRIEVER]
+    )
+    doc_retriever: DocumentsRetriever = DocumentsRetriever(
+        llm=llm_map[NodeType.DOC_RETRIEVER]
+    )
+    human_reviewer: HumanReviewer = HumanReviewer(llm=llm_map[NodeType.HUMAN_REVIEWER])
     verifier: Verifier = Verifier()
-    generator: Generator = Generator(llm=llm)
+    generator: Generator = Generator(llm=llm_map[NodeType.GENERATOR])
     evaluator: Evaluator = Evaluator()
     finalizer: Finalizer = Finalizer()
 

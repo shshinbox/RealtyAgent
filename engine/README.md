@@ -15,9 +15,9 @@
 | :---------------- | :-------------------- |
 | **Framework**     | LangGraph, LangChain  |
 | **LLM**           | GPT-4o                |
-| **Database**      | SQLite                |
+| **Database**      | PostgreSQL            |
 | **Persistence**   | AsyncSqliteSaver      |
-| **Vector DB**     | Weaviate (TO-DO)      |
+| **Vector DB**     | Qdrant                |
 | **Data Modeling** | Pydantic v2           |
 | **Environment**   | Python 3.12+, Asyncio |
 

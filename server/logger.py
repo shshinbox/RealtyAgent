@@ -4,11 +4,11 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
-def setup_logger(name: str = "RealtyAgent-engine"):
+def setup_logger(name: str = "RealtyAgent-server"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    log_dir = Path("logs/engine")
+    log_dir = Path("logs/server")
     log_dir.mkdir(exist_ok=True)
 
     console_handler = logging.StreamHandler(sys.stdout)
