@@ -4,12 +4,8 @@
 __pycache__/
 .venv/
 venv/
-.vscode/
 .pytest_cache/
 logs/
 checkpoints.db
 
 dashboard/
-worker/
-gateway/
-temp.md
