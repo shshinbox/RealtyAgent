@@ -1,13 +1,11 @@
-from typing import Any, Optional
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.language_models import BaseChatModel
+from langchain_core.runnables import RunnableConfig
 
 from ..state import AgentState, StateKey, StateManager
-from ..schema import NodeType, HumanFeedback, HumanAction, HumanFeedbackResponse
-from ..utils import AgentSpecLoader
+from ..schema import NodeType, HumanFeedback, HumanFeedbackResponse
 from .base import LLMNode
 from ...security.guard import PromptGuard
-from ...error.errors import SecurityError
 from ..logger import logger
 
 
@@ -15,7 +13,7 @@ class HumanReviewer(LLMNode[HumanFeedbackResponse]):
     def __init__(self, llm: BaseChatModel) -> None:
         super().__init__(NodeType.HUMAN_REVIEWER, HumanFeedbackResponse, llm)
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
         human_feedback: HumanFeedback = sm.human_feedback
         feedback_content: str = sm.feedback

@@ -1,7 +1,6 @@
 from typing import TypedDict, Annotated, List, Optional, Any, TypeVar, Type, cast
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-import operator
 from enum import StrEnum
 from pydantic import BaseModel
 

@@ -1,10 +1,9 @@
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-import requests
+from langchain_core.runnables import RunnableConfig
 from typing import Any
 
 from ..state import AgentState, StateKey, StateManager
-from ..schema import NodeType, PlannerResponse, EvaluationResponse
+from ..schema import NodeType, EvaluationResponse
 from .base import BaseNode
 from ...security.guard import PromptGuard
 from ...security.hallucination import HallucinationDetector
@@ -15,7 +14,7 @@ class Evaluator(BaseNode):
     def __init__(self) -> None:
         self.key = NodeType.EVALUATOR
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
 
         guard_prompt: PromptGuard = PromptGuard()
@@ -33,7 +32,7 @@ class Evaluator(BaseNode):
         is_pii: bool = presidio_result.get("is_pii", False)
         masked_text: str = presidio_result.get("masked_text", sm.answer)
 
-        # todo
+        # TODO: implement real evaluation response
         # evaluation_response: EvaluationResponse = EvaluationResponse(
         #     is_secured=_is_secured, is_grounded=_is_grounded, has_pii=is_pii
         # )

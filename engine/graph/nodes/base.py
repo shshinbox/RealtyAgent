@@ -1,12 +1,13 @@
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.language_models import BaseChatModel
+from langchain_core.runnables import RunnableConfig
 from typing import TypeVar, Generic, Type, Any, cast
 from abc import abstractmethod, ABC
 from pydantic import BaseModel
 import traceback
 
 from ..state import AgentState, StateKey, StateManager
-from ..schema import NodeType, PlannerResponse, HumanFeedback
+from ..schema import NodeType
 from ..utils import AgentSpecLoader
 from ...error.errors import SecurityError
 from ..logger import logger
@@ -16,9 +17,11 @@ class BaseNode(ABC):
     def __init__(self, node_type: NodeType):
         self.key = node_type
 
-    async def __call__(self, state: AgentState) -> dict[str, Any]:
+    async def __call__(
+        self, state: AgentState, config: RunnableConfig
+    ) -> dict[str, Any]:
         try:
-            return await self._run(state)
+            return await self._run(state, config)
         except SecurityError as se:
             logger.warning(f"[Security Alert] {self.key}: {str(se)}")
             return self._create_error_response(str(se))
@@ -27,7 +30,7 @@ class BaseNode(ABC):
             return self._create_error_response(str(e))
 
     @abstractmethod
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, config: RunnableConfig) -> dict:
         raise NotImplementedError(
             f"Subclasses of {self.key} must implement the 'run' method."
         )
@@ -53,7 +56,7 @@ class ToolNode(BaseNode, Generic[P]):
 
         self.prompt_template = AgentSpecLoader.load_tool_argument_prompt(self.key)
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
         query: str = sm.refined_query or sm.query
         feedback_content: str = sm.feedback

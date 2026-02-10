@@ -1,4 +1,5 @@
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 
 from ..state import AgentState, StateKey, StateManager
 from ..schema import NodeType, PlannerResponse
@@ -9,7 +10,7 @@ class Dispatcher(BaseNode):
     def __init__(self) -> None:
         self.key = NodeType.DISPATCHER
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
         planner_response: PlannerResponse = sm.planner_response
 

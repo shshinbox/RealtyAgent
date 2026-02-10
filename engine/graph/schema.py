@@ -1,5 +1,5 @@
-from typing import Any, TypedDict, Optional, List, Final
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict
 from enum import StrEnum, auto
 
 
@@ -10,6 +10,7 @@ class NodeType(StrEnum):
     HUMAN_REVIEWER = auto()
     LEGAL_RETRIEVER = auto()
     DOC_RETRIEVER = auto()
+    MEMORY_RETRIEVER = auto()
     VERIFIER = auto()
     GENERATOR = auto()
     EVALUATOR = auto()

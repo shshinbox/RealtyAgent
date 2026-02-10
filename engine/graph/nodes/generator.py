@@ -1,13 +1,12 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage, BaseMessage
 from langchain_core.messages import trim_messages
+from langchain_core.runnables import RunnableConfig
 
 from .base import LLMNode
 from ..state import AgentState, StateKey, StateManager
 from ..schema import (
     NodeType,
-    PlannerResponse,
-    EvaluationResponse,
     GeneratorResponse,
 )
 
@@ -16,7 +15,7 @@ class Generator(LLMNode[GeneratorResponse]):
     def __init__(self, llm: BaseChatModel) -> None:
         super().__init__(NodeType.GENERATOR, GeneratorResponse, llm)
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
 
         trimmed_msgs = trim_messages(

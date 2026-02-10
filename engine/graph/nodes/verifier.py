@@ -1,11 +1,10 @@
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 
-from ..state import AgentState, StateKey, StateManager, RetrievedValue
-from ..schema import NodeType, PlannerResponse, CircuitCheck
+from ..state import AgentState, StateKey, StateManager
+from ..schema import NodeType, CircuitCheck
 from .base import BaseNode
 from ...security.guard import PromptGuard
-from ...error.errors import SecurityError
 
 from typing import cast
 
@@ -14,7 +13,7 @@ class Verifier(BaseNode):
     def __init__(self) -> None:
         self.key = NodeType.VERIFIER
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state)
         target: NodeType | None = sm.target_node
         if not target:
@@ -41,7 +40,9 @@ class Verifier(BaseNode):
             update_dict={
                 StateKey.IS_VERIFIED: is_verified,
                 StateKey.CIRCUIT_CHECK: (
-                    new_circuit_check if new_circuit_check is not None else circuit_check
+                    new_circuit_check
+                    if new_circuit_check is not None
+                    else circuit_check
                 ),
             },
         )

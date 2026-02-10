@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Optional, Callable, Any, Dict
+from typing import AsyncGenerator, Optional, Any, Dict
 from langchain_core.runnables import RunnableConfig
 from langchain_core.language_models import BaseChatModel
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -6,6 +6,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from .state import StateKey, HumanFeedback
 from .schema import NodeType
 from .workflow import build_workflow
+from .external_deps import ExternalDepsPort
 
 
 class GraphEngine:
@@ -22,7 +23,7 @@ class GraphEngine:
         user_id: str,
         thread_id: str,
         query: str,
-        external_fns: Optional[Dict[str, Callable]] = None,
+        external_fns: Optional[ExternalDepsPort] = None,
     ) -> AsyncGenerator:
         config = self._build_config(user_id, thread_id, external_fns)
         input_data = {StateKey.QUERY: query}
@@ -35,7 +36,7 @@ class GraphEngine:
         user_id: str,
         thread_id: str,
         feedback: str,
-        external_fns: Optional[Dict[str, Callable]] = None,
+        external_fns: Optional[ExternalDepsPort] = None,
     ) -> AsyncGenerator:
         config = self._build_config(user_id, thread_id, external_fns)
 
@@ -60,13 +61,16 @@ class GraphEngine:
         self,
         user_id: str,
         thread_id: str,
-        external_fns: Optional[Dict[str, Callable]] = None,
+        external_fns: Optional[ExternalDepsPort] = None,
     ) -> RunnableConfig:
         checkpoint_id = f"{user_id}:{thread_id}"
 
-        config: RunnableConfig = {"configurable": {"thread_id": checkpoint_id}}
-
-        if external_fns:
-            config["configurable"].update(external_fns)
+        config: RunnableConfig = {
+            "configurable": {
+                "thread_id": checkpoint_id,
+                "user_id": user_id,
+                "external_fns": external_fns,
+            }
+        }
 
         return config

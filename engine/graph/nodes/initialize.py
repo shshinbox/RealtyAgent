@@ -1,19 +1,15 @@
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage, SystemMessage
-import requests
+from langchain_core.runnables import RunnableConfig
 
 from ..state import AgentState, StateKey, StateManager
 from ..schema import (
     NodeType,
-    PlannerResponse,
-    EvaluationResponse,
     CircuitCheck,
     HumanFeedback,
 )
 from .base import BaseNode
 from ..utils import AgentSpecLoader
 from ...security.guard import PromptGuard
-from ...error.errors import SecurityError
 from ..logger import logger
 
 
@@ -24,7 +20,7 @@ class Initializer(BaseNode):
             self.key, "system_prompt", "v1.0"
         )
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
 
         raw_query: str = sm.query

@@ -1,12 +1,9 @@
-from typing import List
 import requests
-from pydantic import ValidationError
 from langchain_core.language_models import BaseChatModel
 
 from ..utils import AgentSpecLoader
 from ..config import config_settings
 from ..schema import LegalSearchQuery, NodeType
-from ..state import AgentState, StateKey
 from .base import ToolNode
 
 

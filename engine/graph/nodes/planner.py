@@ -1,12 +1,10 @@
-from pydantic import ValidationError
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 
 from ..state import AgentState, StateKey, StateManager
-from ..utils import AgentSpecLoader
 from ..schema import (
     NodeType,
-    HumanFeedback,
     PlannerResponse,
 )
 from .base import LLMNode
@@ -16,7 +14,7 @@ class Planner(LLMNode[PlannerResponse]):
     def __init__(self, llm: BaseChatModel) -> None:
         super().__init__(NodeType.PLANNER, PlannerResponse, llm)
 
-    async def _run(self, state: AgentState) -> dict:
+    async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
 
         raw_query: str = sm.query

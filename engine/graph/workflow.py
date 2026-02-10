@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph import StateGraph, END
 from langchain_core.language_models import BaseChatModel
 
-from .state import AgentState, StateKey
+from .state import AgentState
 from .router import (
     route_after_dispatcher,
     route_after_verifier,

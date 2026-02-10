@@ -1,16 +1,11 @@
-from functools import partial
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import StreamingResponse
 import uuid
 from typing import AsyncGenerator
-from wrapt import partial
 
 from engine import GraphEngine
 
-from server.storage.operations import (
-    enqueue_memory_task,
-    get_user_persona,
-)
+from ..service.external_deps_service import ExternalDeps
 from ..auth import get_current_user_id
 
 
@@ -81,12 +76,5 @@ async def state(
     return state
 
 
-def _external_deps(request: Request) -> dict:
-    return {
-        "search_memory_fn": partial(
-            get_user_persona, db_engine=request.app.state.postgresql
-        ),
-        "push_task_fn": partial(
-            enqueue_memory_task, redis_client=request.app.state.redis_client
-        ),
-    }
+def _external_deps(request: Request):
+    return ExternalDeps(request)
