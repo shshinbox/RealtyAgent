@@ -13,6 +13,7 @@ from .schema import NodeType
 from .nodes.initialize import Initializer
 from .nodes.legal_retriever import LegalRetriever
 from .nodes.doc_retriever import DocumentsRetriever
+from .nodes.memory_retriever import MemoryRetriever
 from .nodes.dispatcher import Dispatcher
 from .nodes.human_reviewer import HumanReviewer
 from .nodes.planner import Planner
@@ -34,6 +35,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
     doc_retriever: DocumentsRetriever = DocumentsRetriever(
         llm=llm_map[NodeType.DOC_RETRIEVER]
     )
+    memory_retriever: MemoryRetriever = MemoryRetriever()
     human_reviewer: HumanReviewer = HumanReviewer(llm=llm_map[NodeType.HUMAN_REVIEWER])
     verifier: Verifier = Verifier()
     generator: Generator = Generator(llm=llm_map[NodeType.GENERATOR])
@@ -45,6 +47,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
     workflow.add_node(NodeType.DISPATCHER, dispatcher)
     workflow.add_node(NodeType.LEGAL_RETRIEVER, legal_retriever)
     workflow.add_node(NodeType.DOC_RETRIEVER, doc_retriever)
+    workflow.add_node(NodeType.MEMORY_RETRIEVER, memory_retriever)
     workflow.add_node(NodeType.HUMAN_REVIEWER, human_reviewer)
     workflow.add_node(NodeType.VERIFIER, verifier)
     workflow.add_node(NodeType.GENERATOR, generator)
@@ -62,6 +65,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
         {
             NodeType.LEGAL_RETRIEVER: NodeType.LEGAL_RETRIEVER,
             NodeType.DOC_RETRIEVER: NodeType.DOC_RETRIEVER,
+            NodeType.MEMORY_RETRIEVER: NodeType.MEMORY_RETRIEVER,
             NodeType.GENERATOR: NodeType.GENERATOR,
             NodeType.HUMAN_REVIEWER: NodeType.HUMAN_REVIEWER,
             NodeType.FINALIZER: NodeType.FINALIZER,
@@ -70,6 +74,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
 
     workflow.add_edge(NodeType.LEGAL_RETRIEVER, NodeType.VERIFIER)
     workflow.add_edge(NodeType.DOC_RETRIEVER, NodeType.VERIFIER)
+    workflow.add_edge(NodeType.MEMORY_RETRIEVER, NodeType.VERIFIER)
 
     workflow.add_conditional_edges(
         NodeType.VERIFIER,
@@ -77,6 +82,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
         {
             NodeType.LEGAL_RETRIEVER: NodeType.LEGAL_RETRIEVER,
             NodeType.DOC_RETRIEVER: NodeType.DOC_RETRIEVER,
+            NodeType.MEMORY_RETRIEVER: NodeType.MEMORY_RETRIEVER,
             NodeType.DISPATCHER: NodeType.DISPATCHER,
         },
     )
