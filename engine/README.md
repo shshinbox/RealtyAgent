@@ -4,7 +4,6 @@
 
 본 프로젝트는 기존 버전([real-estate-agent](https://github.com/shshinbox/real-estate-agent))에서의 선형적 워크플로우의 한계와 상태 제어의 어려움을 극복하기 위해 LangGraph를 도입한 고도화 버전입니다.
 
-단순 답변 생성을 넘어 도구 선택과 결과 검증, 그리고 API 조회 결과가 불충분할 경우 검색 쿼리를 재구성하여 재시도하는 자가 수정 기능을 수행하는 상태(State) 기반 순환형 엔진을 지향합니다.
 
 ---
 
@@ -46,7 +45,7 @@
 |    |         v                   |            |             [ END ]  
 |    |    +-------------+          |            |        
 |    |    | Worker Node |          |            |
-|    |    | Gen|Tool|Hu |          |            |
+|    |    | Gen|Tool|.. |          |            |
 |    |    +-------------+          |            |        
 |    |         |                   |            |        
 |    |         v                   |            |        
@@ -82,19 +81,20 @@ BaseNode
 │
 ├── LLMNode[T]
 │   ├── Initializer   : 상태 초기화 및 입력 쿼리 검증
-│   ├── Planner       : 실행 전략 및 Task Stack 수립
-│   ├── Verifier      : 외부 문서의 Prompt Injection 체크 및 실행 결과 유효성 체크
-│   ├── Generator     : 답변 문장 생성
-│   ├── Evaluator     : 최종 응답 Hallucination, 프라이버시(PII), Prompt Injection 체크
-│   ├── HumanReviewer : 사용자 피드백 해석 및 작업 방향 결정
-│   └── Finalizer     : 상태 정리
+│   ├── Planner       : 노드 실행 계획 수립
+│   ├── Verifier      : 외부 문서의 프롬프트 인젝션 체크 및 실행 결과 유효성 체크
+│   ├── Generator     : 답변 정형 구조 생성
+│   ├── Evaluator     : 최종 응답 환각 여부, 프라이버시, 프롬프트 인젝션 체크
+│   ├── HumanReviewer : 사용자 피드백 및 다음 작업 방향 결정
+│   └── Finalizer     : 상태 정리 및 대화 내역 기반 장기 기억 저장 task 발행
 │
 ├── ToolNode[P]
-│   ├── LegalRetriever : 국가 법령 정보 API 연동
+│   ├── LegalRetriever : 국가 법령 정보 API 검색
+│   ├── MemoryRetriever: 대화 내역 문서 검색(Vector DB)
 │   └── DocRetriever   : 내부 문서 검색(Vector DB)
 │
-└── Dispatcher
-    └── Task Stack 제어 및 워커 노드 동적 할당
+└── Dispatcher         : 플랜 기반 다음 수행 노드 전달
+
 ```
 
 ---

@@ -1,6 +1,6 @@
 # RealtyAgent Project Structure
 
-이 프로젝트는 에이전트 오케스트레이션 엔진과 서비스 게이트웨이로 구성되어 있습니다.
+본 프로젝트는 기존 버전([real-estate-agent](https://github.com/shshinbox/real-estate-agent))에서의 선형적 워크플로우의 한계와 상태 제어의 어려움을 극복하기 위해 LangGraph를 도입한 고도화 버전입니다.
 
 ### 🧩 [LangGraph Module](./engine/README.md)
 
