@@ -6,12 +6,12 @@ from ..schema import NodeType, CircuitCheck
 from .base import BaseNode
 from ...security.guard import PromptGuard
 
-from typing import cast
+from typing import Any, cast
 
 
 class Verifier(BaseNode):
     def __init__(self) -> None:
-        self.key = NodeType.VERIFIER
+        super().__init__(NodeType.VERIFIER)
 
     async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state)
@@ -47,7 +47,43 @@ class Verifier(BaseNode):
             },
         )
 
-    def doc_len(self, target_node: NodeType, target_doc):
+    def doc_len(self, target_node: NodeType, target_doc: Any) -> int:
+        if not target_doc:
+            return 0
+        
         if target_node == NodeType.LEGAL_RETRIEVER and isinstance(target_doc, dict):
-            return len(target_doc.get("Expc", []))
+            
+            num = target_doc.get("numOfRows")
+            if num is None:
+                num = target_doc.get("Expc", {}).get("numOfRows")
+            expc_list = None
+            try:
+                expc_list = target_doc.get("Expc", {}).get("expc")
+            except Exception:
+                expc_list = None
+
+            if isinstance(expc_list, list):
+                return len(expc_list)
+
+            if num is not None:
+                try:
+                    return int(num)
+                except Exception:
+                    import re
+
+                    s = str(num)
+                    m = re.search(r"(\d+)", s)
+                    return int(m.group(1)) if m else 0
+
+        if isinstance(target_doc, list):
+            return len(target_doc)
+
+        if isinstance(target_doc, str):
+            return 1 if target_doc.strip() else 0
+
+        if isinstance(target_doc, dict):
+            if "documents" in target_doc and isinstance(target_doc["documents"], list):
+                return len(target_doc["documents"])
+            return len(target_doc)
+
         return 0

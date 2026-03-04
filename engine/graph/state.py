@@ -39,6 +39,7 @@ class AgentState(TypedDict, total=False):
     answer: Optional[str]
     retrieved_docs: Annotated[dict[str, RetrievedValue], merge_docs]
     api_args: Annotated[dict[str, dict], merge_docs]
+    retry_count: Optional[int]
 
 
 class StateKey(StrEnum):
@@ -55,6 +56,7 @@ class StateKey(StrEnum):
     ANSWER = "answer"
     RETRIEVED_DOCS = "retrieved_docs"
     API_ARGS = "api_args"
+    RETRY_COUNT = "retry_count"
 
 
 T = TypeVar("T")
@@ -113,11 +115,8 @@ class StateManager:
         )
 
     @property
-    def next_node(self) -> NodeType:
-        val = self._state.get(StateKey.NEXT_NODE)
-        if val is None:
-            raise ValueError("next_node is None.")
-        return NodeType(val)
+    def next_node(self) -> NodeType | None:
+        return self._state.get(StateKey.NEXT_NODE, None)
 
     @property
     def target_node(self) -> NodeType:
@@ -166,3 +165,7 @@ class StateManager:
     @property
     def api_args(self) -> dict[str, dict]:
         return self._state.get(StateKey.API_ARGS, {}).copy()
+
+    @property
+    def retry_count(self) -> int:
+        return self._state.get(StateKey.RETRY_COUNT, 0)

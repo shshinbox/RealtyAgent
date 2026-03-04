@@ -14,11 +14,13 @@ class ExternalDeps:
 
     async def search_memories(
         self,
-        query_vector: list[float],
+        query: str,
         metadata_fields: list[str] = [],
         metadata_values: list[Any] = [],
         top_k: int = 5,
     ):
+        query_vector = await self._query_vector(query)
+
         return await self.qdrant.search_with_metadata_filter(
             query_vector=query_vector,
             collection_name="user_memory",
@@ -29,3 +31,15 @@ class ExternalDeps:
 
     async def push_task(self, queue_name: str, data: dict):
         await self.redis.push_task(queue_name=queue_name, data=data)
+
+    async def search_docs(
+        self,
+        query: str = "",
+        metadata_fields: list[str] = [],
+        metadata_values: list[Any] = [],
+        top_k: int = 5,
+    ): ...  # TODO: graphRAG implementation
+
+    async def _query_vector(
+        self, query: str
+    ) -> list[float]: ...  # TODO: embedding implementation

@@ -28,20 +28,20 @@ generator:
 
       출력은 반드시 아래 구조를 가진 하나의 **유효한 JSON 객체**여야 합니다.
 
-      {
-        "report_meta": {
+      {{
+        "report_meta": {{
           "title": "리포트 제목",
           "summary": "전체 내용을 요약한 핵심 문장 (1~2줄)"
-        },
+        }},
         "key_issues": [
           "핵심 쟁점 사항 1",
           "핵심 쟁점 사항 2"
         ],
         "legal_grounds": [
-          {
+          {{
             "law_name": "관련 법령/판례 명칭",
             "interpretation": "법령에 대한 쉬운 풀이"
-          }
+          }}
         ],
         "practical_advice": [
           "실무 차원에서 바로 적용 가능한 조언"
@@ -49,7 +49,7 @@ generator:
         "precautions": [
           "발생 가능한 리스크 및 주의사항"
         ]
-      }
+      }}
 
       - **순수 JSON 텍스트만 출력**하십시오.
       - 마크다운 코드 블록(```json)을 사용하지 마십시오.

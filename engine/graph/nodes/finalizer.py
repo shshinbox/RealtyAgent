@@ -10,7 +10,7 @@ from ..logger import logger
 
 class Finalizer(BaseNode):
     def __init__(self) -> None:
-        self.key = NodeType.FINALIZER
+        super().__init__(NodeType.FINALIZER)
 
     async def _run(self, state: AgentState, config: RunnableConfig) -> dict:
         configurable = config.get("configurable", {})

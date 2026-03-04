@@ -8,7 +8,7 @@ from .schema import (
 from .state import AgentState, StateManager
 
 
-def route_after_dispatcher(state: AgentState) -> NodeType:
+def route_after_dispatcher(state: AgentState) -> NodeType | None:
     sm: StateManager = StateManager(state=state)
     return sm.next_node
 
@@ -32,11 +32,13 @@ def route_after_verifier(state: AgentState) -> NodeType:
 
 def route_after_evaluator(state: AgentState) -> NodeType:
     sm: StateManager = StateManager(state=state)
-    evaluation_response: EvaluationResponse = sm.evaluation_response
 
-    if not evaluation_response.is_safe():
-        return NodeType.HUMAN_REVIEWER
+    # Evaluator에서 next_node를 명시적으로 설정했다면 그것을 따름
+    # (재시도 또는 Human Reviewer로)
+    if sm.next_node:
+        return sm.next_node
 
+    # next_node가 없으면 검증 통과 → DISPATCHER로 돌아가 최종 결정
     return NodeType.DISPATCHER
 
 

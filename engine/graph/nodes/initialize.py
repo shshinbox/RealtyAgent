@@ -15,7 +15,7 @@ from ..logger import logger
 
 class Initializer(BaseNode):
     def __init__(self) -> None:
-        self.key = NodeType.INITIALIZER
+        super().__init__(NodeType.INITIALIZER)
         self.system_prompt = AgentSpecLoader.load_elements(
             self.key, "system_prompt", "v1.0"
         )
@@ -42,5 +42,6 @@ class Initializer(BaseNode):
                 StateKey.API_ARGS: {},
                 StateKey.CIRCUIT_CHECK: CircuitCheck.initialize(),
                 StateKey.HUMAN_FEEDBACK: HumanFeedback(content="", human_action=None),
+                StateKey.RETRY_COUNT: 0,
             },
         )

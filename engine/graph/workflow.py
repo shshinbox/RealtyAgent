@@ -32,9 +32,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
     legal_retriever: LegalRetriever = LegalRetriever(
         llm=llm_map[NodeType.LEGAL_RETRIEVER]
     )
-    doc_retriever: DocumentsRetriever = DocumentsRetriever(
-        llm=llm_map[NodeType.DOC_RETRIEVER]
-    )
+    doc_retriever: DocumentsRetriever = DocumentsRetriever()
     memory_retriever: MemoryRetriever = MemoryRetriever()
     human_reviewer: HumanReviewer = HumanReviewer(llm=llm_map[NodeType.HUMAN_REVIEWER])
     verifier: Verifier = Verifier()
@@ -93,6 +91,7 @@ def build_workflow(llm_map: dict[NodeType, BaseChatModel]) -> StateGraph:
         NodeType.EVALUATOR,
         route_after_evaluator,
         {
+            NodeType.GENERATOR: NodeType.GENERATOR,
             NodeType.HUMAN_REVIEWER: NodeType.HUMAN_REVIEWER,
             NodeType.DISPATCHER: NodeType.DISPATCHER,
         },

@@ -1,7 +1,7 @@
 from langchain_core.runnables import RunnableConfig
 
 from ..schema import NodeType
-from ..state import AgentState, StateKey
+from ..state import AgentState, StateKey, StateManager
 from .base import BaseNode
 from ..logger import logger
 from ..external_deps import ExternalDepsPort
@@ -9,7 +9,7 @@ from ..external_deps import ExternalDepsPort
 
 class MemoryRetriever(BaseNode):
     def __init__(self) -> None:
-        self.key = NodeType.MEMORY_RETRIEVER
+        super().__init__(NodeType.MEMORY_RETRIEVER)
 
     async def _run(self, state: AgentState, config: RunnableConfig) -> dict:
         configurable = config.get("configurable", {})
@@ -19,10 +19,10 @@ class MemoryRetriever(BaseNode):
         if not search_memories_fn:
             logger.error(f"[{self.key}] search_memories_fn is missing in config")
 
-        # TODO: add vector generation logic
         try:
+            sm: StateManager = StateManager(state=state)
             search_memory = await search_memories_fn(
-                query_vector=[],
+                query=sm.refined_query,
                 metadata_fields=["user_id"],
                 metadata_values=[configurable.get("user_id")],
                 top_k=5,
