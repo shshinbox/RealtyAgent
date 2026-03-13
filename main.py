@@ -20,6 +20,8 @@ from server.storage.redis_manager import RedisManager
 from server.storage.postgresql_manager import PostgreSQLManager
 from server.storage.qdrant_searcher import QdrantSearcher
 from server.config import Settings
+from ingestion.pipeline import DocumentPipeline
+from ingestion.retriever import DocumentRetriever
 
 
 def load_settings() -> Settings:
@@ -90,12 +92,33 @@ async def lifespan(app: FastAPI):
         checkpointer=checkpointer,
     )
 
+    # ---- Ingestion ----
+    neo4j_kwargs = dict(
+        neo4j_url=settings.NEO4J_URL or "",
+        neo4j_username=settings.NEO4J_USERNAME or "",
+        neo4j_password=settings.NEO4J_PASSWORD or "",
+    )
+    pipeline = DocumentPipeline(
+        qdrant_host=settings.QDRANT_HOST or "",
+        qdrant_port=settings.QDRANT_PORT or -1,
+        openai_api_key=settings.OPENAI_API_KEY or "",
+        **neo4j_kwargs,
+    )
+    retriever = DocumentRetriever(
+        qdrant_host=settings.QDRANT_HOST or "",
+        qdrant_port=settings.QDRANT_PORT or -1,
+        openai_api_key=settings.OPENAI_API_KEY or "",
+        **neo4j_kwargs,
+    )
+
     # ---- Inject ----
     app.state.settings = settings
     app.state.engine = engine
     app.state.redis = redis_manager
     app.state.pg = postgresql_manager
     app.state.qdrant = qdrant_searcher
+    app.state.pipeline = pipeline
+    app.state.retriever = retriever
 
     logger.info("System initialized")
 

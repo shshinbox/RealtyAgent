@@ -1,5 +1,6 @@
 from fastapi import Request
 from typing import Any
+from openai import AsyncOpenAI
 
 
 class ExternalDeps:
@@ -8,6 +9,9 @@ class ExternalDeps:
         self.qdrant = request.app.state.qdrant
         self.redis = request.app.state.redis
         self.request = request
+
+        settings = request.app.state.settings
+        self._openai = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
     async def get_user_persona(self, user_id: str):
         return await self.postgres.get_persona(user_id=user_id)
@@ -26,7 +30,7 @@ class ExternalDeps:
             collection_name="user_memory",
             metadata_fields=metadata_fields,
             metadata_values=metadata_values,
-            top_k=top_k,
+            limit=top_k,
         )
 
     async def push_task(self, queue_name: str, data: dict):
@@ -38,8 +42,13 @@ class ExternalDeps:
         metadata_fields: list[str] = [],
         metadata_values: list[Any] = [],
         top_k: int = 5,
-    ): ...  # TODO: graphRAG implementation
+    ):
+        retriever = self.request.app.state.retriever
+        return await retriever.search(query=query, top_k=top_k)
 
-    async def _query_vector(
-        self, query: str
-    ) -> list[float]: ...  # TODO: embedding implementation
+    async def _query_vector(self, query: str) -> list[float]:
+        response = await self._openai.embeddings.create(
+            model="text-embedding-3-small",
+            input=query,
+        )
+        return response.data[0].embedding

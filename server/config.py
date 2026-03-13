@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     QDRANT_HOST: str | None = Field(default=None)
     QDRANT_PORT: int | None = Field(default=None)
     POSTGRESQL_URL: str | None = Field(default=None)
+    DOCS_DIR: str | None = Field(default=None)
+    NEO4J_URL: str | None = Field(default=None)
+    NEO4J_USERNAME: str | None = Field(default=None)
+    NEO4J_PASSWORD: str | None = Field(default=None)
 
     model_config = SettingsConfigDict(
         env_file=None,
