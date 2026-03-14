@@ -3,7 +3,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.language_models import BaseChatModel
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
-from .state import StateKey, HumanFeedback
+from .state import StateKey
 from .schema import NodeType
 from .workflow import build_workflow
 from .external_deps import ExternalDepsPort
@@ -15,7 +15,9 @@ class GraphEngine:
     ):
         self._workflow = build_workflow(llm_map=llm_map)
         self._app = self._workflow.compile(
-            checkpointer=checkpointer, interrupt_before=[NodeType.HUMAN_REVIEWER]
+            checkpointer=checkpointer,
+            interrupt_before=[NodeType.HUMAN_REVIEWER],
+            interrupt_after=[NodeType.COUNSELOR],
         )
 
     async def run(
@@ -40,13 +42,10 @@ class GraphEngine:
     ) -> AsyncGenerator:
         config = self._build_config(user_id, thread_id, external_fns)
 
+        # user_input이 단일 입력 채널. 각 노드가 내부에서 필요한 형태로 변환한다.
         await self._app.aupdate_state(
             config,
-            {
-                StateKey.HUMAN_FEEDBACK: HumanFeedback(
-                    content=feedback, human_action=None
-                )
-            },
+            {StateKey.USER_INPUT: feedback},
         )
 
         async for event in self._app.astream_events(None, config, version="v2"):

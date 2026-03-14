@@ -1,4 +1,6 @@
+import re
 import requests
+from typing import Any
 from langchain_core.language_models import BaseChatModel
 
 from ..utils import AgentSpecLoader
@@ -12,6 +14,28 @@ class LegalRetriever(ToolNode[LegalSearchQuery]):
     def __init__(self, llm: BaseChatModel) -> None:
         super().__init__(NodeType.LEGAL_RETRIEVER, LegalSearchQuery, llm)
         self.base_url = AgentSpecLoader.load_elements(self.key, "base_url")
+
+    def _doc_len(self, result: Any) -> int:
+        """법령 API 응답 전용 파싱."""
+        if not result or not isinstance(result, dict):
+            return 0
+        num = result.get("numOfRows")
+        if num is None:
+            num = result.get("Expc", {}).get("numOfRows")
+        expc_list = None
+        try:
+            expc_list = result.get("Expc", {}).get("expc")
+        except Exception:
+            pass
+        if isinstance(expc_list, list):
+            return len(expc_list)
+        if num is not None:
+            try:
+                return int(num)
+            except Exception:
+                m = re.search(r"(\d+)", str(num))
+                return int(m.group(1)) if m else 0
+        return 0
 
     async def _execute_tool(self, args: LegalSearchQuery) -> dict:
 

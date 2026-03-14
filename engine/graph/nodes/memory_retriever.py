@@ -37,6 +37,5 @@ class MemoryRetriever(BaseNode):
         return self._create_success_response(
             update_dict={
                 StateKey.RETRIEVED_DOCS: {self.key: search_memory},
-                StateKey.VERIFIER_TARGET_NODE: self.key,
             },
         )

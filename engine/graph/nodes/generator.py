@@ -8,7 +8,12 @@ from ..state import AgentState, StateKey, StateManager
 from ..schema import (
     NodeType,
     GeneratorResponse,
+    ConsultationContext,
 )
+from ..utils import AgentSpecLoader
+from ..logger import logger
+
+DEFAULT_DOCUMENT_TYPE = "chat"
 
 
 class Generator(LLMNode[GeneratorResponse]):
@@ -29,13 +34,36 @@ class Generator(LLMNode[GeneratorResponse]):
 
         refined_query: str = sm.refined_query or ""
         feedback: str = sm.feedback or ""
+        ctx: ConsultationContext = sm.consultation_context
 
-        prompt: str = self.prompt_template.format(
+        document_type: str = ctx.document_type or DEFAULT_DOCUMENT_TYPE
+
+        try:
+            prompt_template: str = AgentSpecLoader.load_prompt_by_document_type(document_type)
+        except (FileNotFoundError, ValueError):
+            logger.warning(
+                f"[Generator] Template not found for document_type='{document_type}'. "
+                f"Falling back to '{DEFAULT_DOCUMENT_TYPE}'."
+            )
+            prompt_template = AgentSpecLoader.load_prompt_by_document_type(DEFAULT_DOCUMENT_TYPE)
+
+        format_kwargs = dict(
             history=trimmed_msgs,
             retrieved_docs=sm.retrieved_docs,
             refined_query=refined_query,
             feedback=feedback,
+            consultation_context=ctx.model_dump(),
         )
+        # chat 템플릿은 consultation_context 변수가 없으므로 안전하게 format
+        try:
+            prompt: str = prompt_template.format(**format_kwargs)
+        except KeyError:
+            prompt: str = prompt_template.format(
+                history=trimmed_msgs,
+                retrieved_docs=sm.retrieved_docs,
+                refined_query=refined_query,
+                feedback=feedback,
+            )
 
         response: GeneratorResponse = await self._ask_llm(prompt)
 

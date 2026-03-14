@@ -35,9 +35,14 @@ class DocumentsRetriever(BaseNode):
             logger.error(f"[{self.key}] Failed to execute document search: {e}")
             search_docs = []
 
+        is_valid, new_circuit_check = await self._validate_retrieved_docs(
+            search_docs, sm.circuit_check
+        )
+
         return self._create_success_response(
             update_dict={
                 StateKey.RETRIEVED_DOCS: {self.key: search_docs},
-                StateKey.VERIFIER_TARGET_NODE: self.key,
+                StateKey.IS_VERIFIED: is_valid,
+                StateKey.CIRCUIT_CHECK: new_circuit_check,
             },
         )

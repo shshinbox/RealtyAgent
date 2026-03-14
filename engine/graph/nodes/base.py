@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import traceback
 
 from ..state import AgentState, StateKey, StateManager
-from ..schema import NodeType
+from ..schema import NodeType, CircuitCheck
 from ..utils import AgentSpecLoader
 from ...error.errors import SecurityError
 from ..logger import logger
@@ -43,6 +43,35 @@ class BaseNode(ABC):
     def _create_error_response(self, error_msg: str) -> dict:
         return {StateKey.ERRORS: error_msg}
 
+    def _doc_len(self, result: Any) -> int:
+        """검색 결과 길이 확인. 서브클래스에서 API 응답 포맷에 맞게 오버라이드 가능."""
+        if not result:
+            return 0
+        if isinstance(result, list):
+            return len(result)
+        if isinstance(result, str):
+            return 1 if result.strip() else 0
+        if isinstance(result, dict):
+            if "documents" in result and isinstance(result["documents"], list):
+                return len(result["documents"])
+            return len(result)
+        return 0
+
+    async def _validate_retrieved_docs(
+        self, result: Any, circuit_check: CircuitCheck
+    ) -> tuple[bool, CircuitCheck]:
+        """검색 결과 유효성 검사 + circuit breaker 업데이트."""
+        from ...security.guard import PromptGuard
+
+        doc_length = self._doc_len(result)
+        check_message = ToolMessage(
+            content=f"검색 문서: {result}", tool_call_id=f"call_{self.key}"
+        )
+        is_secured = await PromptGuard().is_secured([check_message])
+        is_valid = doc_length > 0 and is_secured
+        new_circuit_check = circuit_check.increase(self.key) if not is_valid else circuit_check
+        return is_valid, new_circuit_check
+
 
 P = TypeVar("P", bound=BaseModel)
 
@@ -74,11 +103,15 @@ class ToolNode(BaseNode, Generic[P]):
 
         api_args = cast(P, raw_response)
         search_result = await self._execute_tool(api_args)
+        is_valid, new_circuit_check = await self._validate_retrieved_docs(
+            search_result, sm.circuit_check
+        )
 
         return self._create_success_response(
             update_dict={
                 StateKey.RETRIEVED_DOCS: {self.key: search_result},
-                StateKey.VERIFIER_TARGET_NODE: self.key,
+                StateKey.IS_VERIFIED: is_valid,
+                StateKey.CIRCUIT_CHECK: new_circuit_check,
                 StateKey.API_ARGS: {self.key: api_args},
             },
         )

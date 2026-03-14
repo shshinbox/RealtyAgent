@@ -59,6 +59,7 @@ def build_llm_map(settings: Settings) -> Dict[NodeType, BaseChatModel]:
         NodeType.DOC_RETRIEVER: llm("gpt-4o-mini"),
         NodeType.LEGAL_RETRIEVER: llm("gpt-4o-mini"),
         NodeType.HUMAN_REVIEWER: llm("gpt-4o-mini"),
+        NodeType.COUNSELOR: llm("gpt-4o-mini"),
     }
 
 

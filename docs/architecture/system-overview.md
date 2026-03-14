@@ -50,23 +50,21 @@
 ```
 Initializer → Planner → Dispatcher
                              │
-             ┌───────────────┼───────────────────┐
-             │               │                   │
-      LegalRetriever   DocRetriever       MemoryRetriever
-             │               │                   │
-             └───────────────┼───────────────────┘
-                             │
-                          Verifier
-                             │
-                         Dispatcher (재라우팅)
-                             │
-                         Generator
-                             │
-                         Evaluator
-                             │
-                    ┌────────┴────────┐
-                    │                 │
-             HumanReviewer       Finalizer → END
+             ┌───────────────┼──────────────────────┐
+             │               │                      │
+          Counselor   LegalRetriever (루프)   DocRetriever (루프)
+          (루프)             │               MemoryRetriever
+             │               └──────────────────────┘
+             │                          │
+             └──────────── Dispatcher (재라우팅)
+                                        │
+                                    Generator
+                                        │
+                                    Evaluator
+                                        │
+                             ┌──────────┴──────────┐
+                             │                     │
+                      HumanReviewer           Finalizer → END
 ```
 
 ### 노드 역할
@@ -76,30 +74,30 @@ Initializer → Planner → Dispatcher
 | **Initializer** | 세션 초기화, 대화 이력 로딩 |
 | **Planner** | 사용자 의도 분석 후 실행 노드 순서(node_stack) 계획 |
 | **Dispatcher** | node_stack 기반으로 다음 실행 노드 라우팅 |
-| **LegalRetriever** | 판례, 법령 등 법적 근거 검색 |
-| **DocRetriever** | 매물, 실거래가, 공문서 등 사실 관계 검색 |
-| **MemoryRetriever** | 과거 대화 및 사용자 맥락 조회 |
-| **Verifier** | 검색 결과 유효성 검증, 추가 검색 여부 판단 |
-| **Generator** | 검색 결과 기반 구조화된 리포트 데이터 생성 |
+| **Counselor** | 문서 작성 전 정보 수집 상담. interrupt_after로 동작하며 필요 정보가 모일 때까지 루프 |
+| **LegalRetriever** | 판례, 법령 등 법적 근거 검색. 검증 실패 시 self-loop (circuit breaker 3회) |
+| **DocRetriever** | 매물, 실거래가, 공문서 등 사실 관계 검색. 동일한 self-loop 구조 |
+| **MemoryRetriever** | 과거 대화 및 사용자 맥락 조회. 항상 Dispatcher로 복귀 |
+| **Generator** | 문서 유형별 YAML 템플릿을 동적 로딩하여 결과물 생성 |
 | **Evaluator** | 생성 결과 품질 평가, 재생성 또는 검토 요청 판단 |
-| **HumanReviewer** | 사용자 확인이 필요한 경우 중간 승인 요청 |
+| **HumanReviewer** | interrupt_before로 동작하며 사용자 승인 후 분기 처리 |
 | **Finalizer** | 최종 결과 정리 및 후처리 작업(Worker 태스크 발행) |
 
 ---
 
 ## 출력 형식
 
-**Generator**는 구조화된 JSON 형태로 리포트 데이터를 생성하며, 이후 **Jinja2 렌더러**를 통해 HTML 및 PDF로 변환됩니다.
+**Generator**는 `ConsultationContext.document_type`에 따라 문서 유형별 YAML 프롬프트 템플릿을 동적으로 로딩하여 결과물을 생성합니다.
 
-```json
-{
-  "report_meta": { "title": "...", "summary": "..." },
-  "key_issues": [...],
-  "legal_grounds": [...],
-  "practical_advice": [...],
-  "precautions": [...]
-}
-```
+| 문서 유형 | 설명 |
+|---|---|
+| `chat` | 가벼운 대화형 응답 (기본값, Counselor 없이 바로 응답) |
+| `legal_report` | 법률 상담 리포트 (쟁점 분석, 법적 근거, 실무 조언) |
+| `lease_contract` | 임대차 계약서 |
+| `sale_contract` | 부동산 매매 계약서 |
+| `legal_memo` | 내용증명 / 법률 메모 |
+
+문서 유형이 `chat`이 아닌 경우, Planner는 `counselor`를 `generator` 앞에 배치하여 사용자로부터 필요한 정보를 먼저 수집합니다.
 
 ---
 
@@ -135,7 +133,7 @@ server/service/external_deps_service.py (ExternalDeps)
 | **PostgreSQL** | 대화 이력 (시간순), 사용자 프로필 (GLiNER 엔티티) |
 | **Qdrant (Vector DB)** | 공문서 RAG 검색, 사용자 메모리 검색 |
 | **Redis** | Worker 태스크 큐, 캐시 |
-| **Neo4j (예정)** | 공문서 개체 간 관계망 (GraphRAG) |
+| **Neo4j** | 공문서 개체 간 관계망 (GraphRAG) |
 
 ---
 
@@ -150,4 +148,4 @@ server/service/external_deps_service.py (ExternalDeps)
 | 관계형 DB | PostgreSQL |
 | 메시지 큐 | Redis |
 | 리포트 렌더링 | Jinja2 (HTML / PDF) |
-| 문서 수집 파이프라인 | LlamaIndex (ingestion/ 패키지, 예정) |
+| 문서 수집 파이프라인 | LlamaIndex |

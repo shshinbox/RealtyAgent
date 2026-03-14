@@ -31,6 +31,7 @@ class Dispatcher(BaseNode):
             NodeType.LEGAL_RETRIEVER,
             NodeType.DOC_RETRIEVER,
             NodeType.MEMORY_RETRIEVER,
+            NodeType.COUNSELOR,
             NodeType.GENERATOR,
             NodeType.HUMAN_REVIEWER,
             NodeType.FINALIZER,
@@ -43,14 +44,5 @@ class Dispatcher(BaseNode):
             StateKey.NEXT_NODE: next_node,
             StateKey.PLANNER_RESPONSE: planner_response,
         }
-
-        # Retriever 노드로 가는 경우 target_node 설정
-        retriever_nodes = {
-            NodeType.LEGAL_RETRIEVER,
-            NodeType.DOC_RETRIEVER,
-            NodeType.MEMORY_RETRIEVER,
-        }
-        if next_node in retriever_nodes:
-            update_dict[StateKey.VERIFIER_TARGET_NODE] = next_node
 
         return self._create_success_response(update_dict=update_dict)

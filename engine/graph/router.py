@@ -3,7 +3,6 @@ from .schema import (
     HumanFeedback,
     EvaluationResponse,
     HumanAction,
-    CircuitCheck,
 )
 from .state import AgentState, StateManager
 
@@ -13,21 +12,19 @@ def route_after_dispatcher(state: AgentState) -> NodeType | None:
     return sm.next_node
 
 
-def route_after_verifier(state: AgentState) -> NodeType:
+def _route_after_retriever(state: AgentState, node_type: NodeType) -> NodeType:
     sm: StateManager = StateManager(state=state)
-    is_verified: bool = sm.is_verified
-    target_node: NodeType = sm.target_node
-    circuit_limit: CircuitCheck = sm.circuit_check
+    if sm.is_verified or sm.circuit_check.is_over_limit(node_type):
+        return NodeType.DISPATCHER
+    return node_type
 
-    next_node: NodeType | None = None
 
-    if not is_verified:
-        next_node = target_node
+def route_after_legal_retriever(state: AgentState) -> NodeType:
+    return _route_after_retriever(state, NodeType.LEGAL_RETRIEVER)
 
-    if circuit_limit.is_over_limit(target_node):
-        next_node = NodeType.DISPATCHER
 
-    return next_node or NodeType.DISPATCHER
+def route_after_doc_retriever(state: AgentState) -> NodeType:
+    return _route_after_retriever(state, NodeType.DOC_RETRIEVER)
 
 
 def route_after_evaluator(state: AgentState) -> NodeType:
@@ -42,10 +39,16 @@ def route_after_evaluator(state: AgentState) -> NodeType:
     return NodeType.DISPATCHER
 
 
+def route_after_counselor(state: AgentState) -> NodeType:
+    sm: StateManager = StateManager(state=state)
+    if sm.consultation_context.is_ready:
+        return NodeType.DISPATCHER
+    return NodeType.COUNSELOR
+
+
 def route_after_human(state: AgentState) -> NodeType:
     sm: StateManager = StateManager(state=state)
     human_feedback: HumanFeedback = sm.human_feedback
-    answer: str = sm.answer
 
     match human_feedback.human_action:
         case HumanAction.REPLAN:

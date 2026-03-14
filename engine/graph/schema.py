@@ -7,11 +7,11 @@ class NodeType(StrEnum):
     INITIALIZER = auto()
     PLANNER = auto()
     DISPATCHER = auto()
+    COUNSELOR = auto()
     HUMAN_REVIEWER = auto()
     LEGAL_RETRIEVER = auto()
     DOC_RETRIEVER = auto()
     MEMORY_RETRIEVER = auto()
-    VERIFIER = auto()
     GENERATOR = auto()
     EVALUATOR = auto()
     FINALIZER = auto()
@@ -111,6 +111,25 @@ class CircuitCheck(BaseModel):
 
     def get_count(self, node_type: NodeType) -> int:
         return self.circuit_stat.get(node_type, 0)
+
+
+class ConsultationContext(BaseModel):
+    """상담 중 누적되는 컨텍스트. 핵심 필드는 타입 보장, 문서별 동적 필드는 extra로 수용."""
+    model_config = ConfigDict(extra="allow")
+    document_type: str = Field(default="chat", description="문서 유형")
+    is_ready: bool = Field(default=False, description="Generator로 넘어갈 준비 여부")
+
+
+class CollectedField(BaseModel):
+    key: str = Field(description="수집된 정보의 항목명 (예: 임대인, 보증금)")
+    value: str = Field(description="수집된 정보의 값")
+
+
+class CounselorResponse(BaseModel):
+    document_type: str = Field(description="문서 유형 (예: legal_report, lease_contract, sale_contract, legal_memo)")
+    collected_fields: list[CollectedField] = Field(default_factory=list, description="이번 턴에 추출된 정보 목록")
+    is_ready: bool = Field(description="Generator로 넘어갈 준비 여부")
+    question: Optional[str] = Field(default=None, description="is_ready=False일 때 유저에게 던질 다음 질문")
 
 
 class GeneratorResponse(BaseModel):

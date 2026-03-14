@@ -15,8 +15,9 @@ class HumanReviewer(LLMNode[HumanFeedbackResponse]):
 
     async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
-        human_feedback: HumanFeedback = sm.human_feedback
-        feedback_content: str = sm.feedback
+
+        # user_input: resume()이 주입한 단일 입력 채널
+        feedback_content: str = sm.user_input
 
         guard_prompt: PromptGuard = PromptGuard()
 
@@ -27,9 +28,15 @@ class HumanReviewer(LLMNode[HumanFeedbackResponse]):
 
         response: HumanFeedbackResponse = await self._ask_llm(prompt)
 
-        human_feedback.set_human_action(response.action)
+        # 내부에서 HumanFeedback 객체 생성 후 action 설정
+        human_feedback: HumanFeedback = HumanFeedback(
+            content=feedback_content, human_action=response.action
+        )
 
         return self._create_success_response(
             messages=[HumanMessage(content=f"사용자 피드백: {human_feedback}")],
-            update_dict={StateKey.HUMAN_FEEDBACK: human_feedback},
+            update_dict={
+                StateKey.HUMAN_FEEDBACK: human_feedback,
+                StateKey.USER_INPUT: None,  # 처리 완료된 입력 초기화
+            },
         )
