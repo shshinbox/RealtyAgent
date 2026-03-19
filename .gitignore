@@ -9,6 +9,3 @@ logs/
 checkpoints.db
 checkpoints.db-shm
 checkpoints.db-wal
-
-dashboard/
-sample/

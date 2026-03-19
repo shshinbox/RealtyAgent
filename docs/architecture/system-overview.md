@@ -137,15 +137,31 @@ server/service/external_deps_service.py (ExternalDeps)
 
 ---
 
+## 서버 초기화 구조
+
+`main.py`는 순서 조율만 담당하며, 각 인프라의 초기화 책임은 `server/bootstrap/`에 분리되어 있습니다.
+
+```
+server/bootstrap/
+  settings.py    APP_ENV 기반 .env 파일 로딩
+  llm.py         NodeType → ChatOpenAI 모델 매핑
+  storage.py     Redis / PostgreSQL / Qdrant 초기화 및 종료
+  engine.py      SQLite checkpointer + GraphEngine 조합
+  ingestion.py   DocumentPipeline + DocumentRetriever 조합
+```
+
+---
+
 ## 주요 기술 스택
 
 | 구분 | 기술 |
 |---|---|
 | 에이전트 프레임워크 | LangGraph |
 | API 서버 | FastAPI |
+| 프론트엔드 | Vanilla HTML / CSS / JS (SPA, 프레임워크 없음) |
 | 엔티티 추출 | GLiNER (DeBERTa-v3 기반) |
 | Vector DB | Qdrant |
 | 관계형 DB | PostgreSQL |
 | 메시지 큐 | Redis |
-| 리포트 렌더링 | Jinja2 (HTML / PDF) |
+| 리포트 렌더링 | Jinja2 (HTML 패널 스니펫) |
 | 문서 수집 파이프라인 | LlamaIndex |

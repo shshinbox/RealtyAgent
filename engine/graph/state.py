@@ -37,6 +37,7 @@ class AgentState(TypedDict, total=False):
     is_verified: Optional[bool]
     evaluation_response: Optional[EvaluationResponse]
     answer: Optional[str]
+    chat_message: Optional[str]
     retrieved_docs: Annotated[dict[str, RetrievedValue], merge_docs]
     api_args: Annotated[dict[str, dict], merge_docs]
     retry_count: Optional[int]
@@ -56,6 +57,7 @@ class StateKey(StrEnum):
     IS_VERIFIED = "is_verified"
     EVALUATION_RESPONSE = "evaluation_response"
     ANSWER = "answer"
+    CHAT_MESSAGE = "chat_message"
     RETRIEVED_DOCS = "retrieved_docs"
     API_ARGS = "api_args"
     RETRY_COUNT = "retry_count"
@@ -156,6 +158,10 @@ class StateManager:
     @property
     def answer(self) -> str:
         return self._state.get(StateKey.ANSWER, "")
+
+    @property
+    def chat_message(self) -> str:
+        return self._state.get(StateKey.CHAT_MESSAGE, "")
 
     @property
     def retrieved_docs(self) -> dict[str, RetrievedValue]:

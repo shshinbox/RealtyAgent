@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.responses import StreamingResponse
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse, FileResponse
 import uuid
 from pathlib import Path
+from typing import AsyncGenerator
 
 from engine import GraphEngine
 
@@ -14,31 +14,23 @@ from ..auth import get_current_user_id
 router = APIRouter()
 
 
+async def _stream(events: AsyncGenerator, renderer: HtmlRenderer, preamble: str = "") -> AsyncGenerator[str, None]:
+    if preamble:
+        yield f"data: {preamble}\n\n"
+    async for chunk in events:
+        for message, is_json in renderer.format_event(chunk):
+            html_chunk = await renderer.render_content(message, is_json=is_json)
+            yield f"data: {html_chunk}\n\n"
+
+
 @router.post("/new")
 async def new(
     request: Request, user_query: str, user_id: str = Depends(get_current_user_id)
 ) -> StreamingResponse:
-    thread_id: str = str(uuid.uuid4())
-
+    thread_id = str(uuid.uuid4())
     engine: GraphEngine = request.app.state.engine
-    html_renderer = HtmlRenderer()
-
-    async def stream_generator():
-        async for chunk in engine.run(
-            query=user_query,
-            thread_id=thread_id,
-            user_id=user_id,
-            external_fns=_external_deps(request),
-        ):
-            result = html_renderer.format_event(chunk)
-            if result:
-                message, is_json = result
-                html_chunk = await html_renderer.render_content(
-                    message, is_json=is_json
-                )
-                yield f"data: {html_chunk}\n\n"
-
-    return StreamingResponse(stream_generator(), media_type="text/event-stream")
+    events = engine.run(query=user_query, thread_id=thread_id, user_id=user_id, external_fns=_external_deps(request))
+    return StreamingResponse(_stream(events, HtmlRenderer(), preamble=f"thread_id:{thread_id}"), media_type="text/event-stream")
 
 
 @router.post("/{thread_id}")
@@ -49,24 +41,8 @@ async def run(
     user_id: str = Depends(get_current_user_id),
 ) -> StreamingResponse:
     engine: GraphEngine = request.app.state.engine
-    html_renderer = HtmlRenderer()
-
-    async def stream_generator():
-        async for chunk in engine.run(
-            query=user_query,
-            thread_id=thread_id,
-            user_id=user_id,
-            external_fns=_external_deps(request),
-        ):
-            result = html_renderer.format_event(chunk)
-            if result:
-                message, is_json = result
-                html_chunk = await html_renderer.render_content(
-                    message, is_json=is_json
-                )
-                yield f"data: {html_chunk}\n\n"
-
-    return StreamingResponse(stream_generator(), media_type="text/event-stream")
+    events = engine.run(query=user_query, thread_id=thread_id, user_id=user_id, external_fns=_external_deps(request))
+    return StreamingResponse(_stream(events, HtmlRenderer()), media_type="text/event-stream")
 
 
 @router.post("/{thread_id}/resume")
@@ -77,28 +53,36 @@ async def resume(
     user_id: str = Depends(get_current_user_id),
 ) -> StreamingResponse:
     engine: GraphEngine = request.app.state.engine
-    html_renderer = HtmlRenderer()
-
-    async def stream_generator():
-        async for chunk in engine.resume(
-            thread_id=thread_id,
-            feedback=feedback,
-            user_id=user_id,
-            external_fns=_external_deps(request),
-        ):
-            result = html_renderer.format_event(chunk)
-            if result:
-                message, is_json = result
-                html_chunk = await html_renderer.render_content(
-                    message, is_json=is_json
-                )
-                yield f"data: {html_chunk}\n\n"
-
-    return StreamingResponse(stream_generator(), media_type="text/event-stream")
+    events = engine.resume(thread_id=thread_id, feedback=feedback, user_id=user_id, external_fns=_external_deps(request))
+    return StreamingResponse(_stream(events, HtmlRenderer()), media_type="text/event-stream")
 
 
 def _external_deps(request: Request):
     return ExternalDeps(request)
+
+
+@router.get("/{thread_id}/history")
+async def history(
+    request: Request, thread_id: str, user_id: str = Depends(get_current_user_id)
+):
+    engine: GraphEngine = request.app.state.engine
+    state = await engine.aget_state(thread_id=thread_id, user_id=user_id)
+
+    if state is None or not state.values:
+        raise HTTPException(status_code=404, detail="Not found.")
+
+    messages = state.values.get("messages", [])
+    answer = state.values.get("answer") or ""
+
+    renderer = HtmlRenderer()
+    return {
+        "messages": [
+            {"type": m.type, "content": m.content}
+            for m in messages
+            if m.type in ("human", "ai") and m.content
+        ],
+        "report_html": renderer.render_report_html(answer) if answer else None,
+    }
 
 
 @router.get("/{thread_id}/state")
@@ -133,8 +117,4 @@ async def download_rendered_report(
     html_content = await html_renderer.render(content=final_answer)
     output_path.write_text(html_content, encoding="utf-8")
 
-    return FileResponse(
-        path=output_path,
-        filename=filename,
-        media_type="text/html",
-    )
+    return FileResponse(path=output_path, filename=filename, media_type="text/html")

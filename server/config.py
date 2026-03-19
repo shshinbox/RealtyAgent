@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = Field(default=None)
     SECRET_KEY: str | None = Field(default=None)
     ALGORITHM: str = Field(default="HS256")
+    AUTH_USERNAME: str | None = Field(default=None)
+    AUTH_PASSWORD: str | None = Field(default=None)
     QDRANT_HOST: str | None = Field(default=None)
     QDRANT_PORT: int | None = Field(default=None)
     POSTGRESQL_URL: str | None = Field(default=None)

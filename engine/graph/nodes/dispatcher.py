@@ -16,7 +16,7 @@ class Dispatcher(BaseNode):
         planner_response: PlannerResponse = sm.planner_response
 
         logger.info(
-            f"Dispatcher: planner_response.node_stack={planner_response.node_stack}"
+            f"Dispatcher: planner_response.planned_nodes={planner_response.planned_nodes}"
         )
 
         if planner_response.is_exhausted():

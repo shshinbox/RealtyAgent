@@ -37,5 +37,13 @@ planner:
       {{
           "intention": "사용자 의도 한 문장 요약",
           "refined_query": "검색 최적화 쿼리",
-          "node_stack": ["node1", "node2", ...]  /* 위 5가지 노드만 사용 */
+          "planned_nodes": ["node1", "node2", ...],  /* 위 5가지 노드만 사용 */
+          "document_type": "chat"  /* 아래 규칙에 따라 선택:
+            - "chat"            : 일반 질의응답 (문서 작성 없음)
+            - "legal_report"    : 법적 근거/판례 조회가 포함된 경우 (legal_retriever 사용 시 반드시 이 값)
+            - "lease_contract"  : 임대차 계약서 (전세/월세/보증금)
+            - "sale_contract"   : 매매 계약서
+            - "legal_memo"      : 내용증명 / 법률 메모
+            규칙: planned_nodes에 legal_retriever 포함 → "legal_report"
+                  단순 질의응답 → "chat" */
       }}

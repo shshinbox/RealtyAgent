@@ -1,0 +1,52 @@
+<div class="lr-report">
+  <div class="lr-header">
+    <h1 class="lr-title">{{ report_meta.title }}</h1>
+    <p class="lr-summary">{{ report_meta.summary }}</p>
+    <span class="lr-date">{{ created_at }}</span>
+  </div>
+
+  {% if key_issues %}
+  <section class="lr-section">
+    <h2 class="lr-section-title">핵심 쟁점</h2>
+    <ul class="lr-list">
+      {% for issue in key_issues %}
+      <li>{{ issue }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if legal_grounds %}
+  <section class="lr-section">
+    <h2 class="lr-section-title">법적 근거</h2>
+    {% for ground in legal_grounds %}
+    <div class="lr-ground">
+      <span class="lr-law-name">{{ ground.law_name }}</span>
+      <p class="lr-interpretation">{{ ground.interpretation }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if practical_advice %}
+  <section class="lr-section">
+    <h2 class="lr-section-title">실무 조언</h2>
+    <ul class="lr-list lr-list--advice">
+      {% for advice in practical_advice %}
+      <li>{{ advice }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if precautions %}
+  <section class="lr-section">
+    <h2 class="lr-section-title">주의사항</h2>
+    <ul class="lr-list lr-list--caution">
+      {% for item in precautions %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>

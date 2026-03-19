@@ -46,30 +46,12 @@ class AgentSpecLoader:
     def load_tool_argument_prompt(cls, agent_name: str, version: str = "v1.0") -> str:
         return cls.load_elements(agent_name, "tool_argument_template", version)
 
-    @staticmethod
-    @lru_cache(maxsize=32)
-    def load_generator_yaml(document_type: str) -> dict:
-        file_name = f"{document_type}.yaml"
-        file_item = AgentSpecLoader.PROMPTS_DIR / "generator" / file_name
-
-        if not file_item.is_file():
-            raise FileNotFoundError(
-                f"Generator template not found: generator/{file_name}"
-            )
-
-        try:
-            content = file_item.read_text(encoding="utf-8")
-            data = yaml.safe_load(content)
-            return data.get(document_type, {})
-        except Exception as e:
-            raise ValueError(f"Failed to parse generator YAML for {document_type}: {e}")
-
     @classmethod
-    def load_prompt_by_document_type(cls, document_type: str, version: str = "v1.0") -> str:
-        data = cls.load_generator_yaml(document_type)
-        val = data.get(version, {}).get("template")
+    def load_generator_prompt(cls, document_type: str, version: str = "v1.0") -> str:
+        data = cls.load_yaml("generators")
+        val = data.get(document_type, {}).get(version, {}).get("template")
         if not val:
             raise ValueError(
-                f"Missing template for document_type='{document_type}', version='{version}'"
+                f"Missing generator template for document_type='{document_type}', version='{version}'"
             )
         return val

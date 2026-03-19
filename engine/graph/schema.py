@@ -20,22 +20,23 @@ class NodeType(StrEnum):
 class PlannerResponse(BaseModel):
     refined_query: Optional[str] = Field(description="사용자 쿼리의 개선된 버전")
     intention: Optional[str] = Field(description="사용자의 의도 요약")
-    node_stack: list[NodeType] = Field(default=[], description="호출할 노드 리스트")
+    planned_nodes: list[NodeType] = Field(default=[], description="호출할 노드 리스트")
+    document_type: str = Field(default="chat", description="생성할 문서 유형 (chat / legal_report / lease_contract / sale_contract / legal_memo)")
 
     def is_exhausted(self) -> bool:
-        return not self.node_stack
+        return not self.planned_nodes
 
     def pop_stack(self) -> NodeType:
-        if not self.node_stack:
-            raise ValueError("node_stack is empty.")
-        next_node = self.node_stack[0]
-        self.node_stack = self.node_stack[1:]
+        if not self.planned_nodes:
+            raise ValueError("planned_nodes is empty.")
+        next_node = self.planned_nodes[0]
+        self.planned_nodes = self.planned_nodes[1:]
         return next_node
 
     def current_node(self) -> NodeType:
-        if not self.node_stack:
-            raise ValueError("node_stack is empty.")
-        return self.node_stack[0]
+        if not self.planned_nodes:
+            raise ValueError("planned_nodes is empty.")
+        return self.planned_nodes[0]
 
 
 class HumanAction(StrEnum):
@@ -134,4 +135,5 @@ class CounselorResponse(BaseModel):
 
 class GeneratorResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    answer: str = Field(description="사용자의 질문에 대한 최종 답변 텍스트")
+    chat_message: str = Field(description="왼쪽 채팅 패널에 표시할 짧은 안내 메시지 (1~2문장, 대화체). 어떤 내용을 작성했는지 요약하고 주의사항이 있으면 간략히 언급.")
+    answer: str = Field(description="오른쪽 보고서 패널에 표시할 최종 답변 또는 문서 전문")

@@ -72,17 +72,20 @@ Dispatcher가 이를 순차적으로 실행하는 구조입니다.
 - 이후 모든 노드가 공유할 `AgentState`를 구성합니다.
 
 ### Planner
-- 사용자 질문을 분석하여 아래 세 가지를 생성합니다.
+- 사용자 질문을 분석하여 아래 네 가지를 생성합니다.
 
 | 출력 필드 | 설명 |
 |---|---|
 | `intention` | 사용자 의도 한 문장 요약 |
 | `refined_query` | 검색 최적화된 쿼리 |
-| `node_stack` | 실행할 노드 순서 리스트 |
+| `planned_nodes` | 실행할 노드 순서 리스트 |
+| `document_type` | 생성할 문서 유형 (`chat` / `legal_report` / `lease_contract` / `sale_contract` / `legal_memo`) |
 
 - 사용 가능한 노드: `counselor`, `legal_retriever`, `doc_retriever`, `memory_retriever`, `generator`, `human_reviewer`
 - `initializer`, `planner`, `dispatcher`, `evaluator`, `finalizer`는 시스템이 자동 관리하며 Planner가 직접 지정하지 않습니다.
 - 문서 작성이 필요한 요청에는 `counselor`를 `generator` 앞에 배치하여 필요 정보를 사전 수집합니다.
+- Planner 실행 후 `document_type`이 `ConsultationContext`에 즉시 기록되므로, Counselor를 거치지 않는 흐름에서도 Generator가 올바른 템플릿을 사용합니다.
+- LLM이 `"chat"`으로 잘못 판단하는 경우를 대비해, `planned_nodes`에 `legal_retriever`가 포함되면 코드 레벨에서 `"legal_report"`로 자동 보정합니다.
 
 ### Dispatcher
 - `node_stack`에서 노드를 순차적으로 pop하여 다음 실행 노드를 결정합니다.
@@ -119,20 +122,29 @@ Dispatcher가 이를 순차적으로 실행하는 구조입니다.
 | `legal_memo` | 발신인/수신인 정보, 작성 목적, 관련 사실 관계 |
 
 ### Generator
-- `ConsultationContext`의 `document_type`을 런타임에 읽어 해당 YAML 프롬프트 템플릿을 동적으로 로딩합니다.
+- `ConsultationContext`의 `document_type`을 런타임에 읽어 `generators.yaml`에서 해당 템플릿을 동적으로 로딩합니다.
 - 검색된 정보(`retrieved_docs`)와 상담 컨텍스트(`consultation_context`)를 결합하여 결과물을 생성합니다.
 - 근거가 부족한 항목은 "추가 확인 필요"로 명시합니다.
 - 생성 완료 후 `Evaluator`로 전달됩니다.
 
-**문서 유형별 YAML 템플릿 (`engine/statics/generator/`):**
+**출력 필드:**
 
-| 파일 | 문서 유형 | 설명 |
+| 필드 | 화면 위치 | 설명 |
 |---|---|---|
-| `chat.yaml` | `chat` | 가벼운 대화형 응답 (기본값) |
-| `legal_report.yaml` | `legal_report` | 법률 상담 리포트 |
-| `lease_contract.yaml` | `lease_contract` | 임대차 계약서 |
-| `sale_contract.yaml` | `sale_contract` | 매매 계약서 |
-| `legal_memo.yaml` | `legal_memo` | 내용증명 / 법률 메모 |
+| `chat_message` | 왼쪽 채팅 말풍선 | 1~2문장의 짧은 안내 (보고서 모드에서만 사용) |
+| `answer` | 오른쪽 보고서 패널 또는 왼쪽 채팅 | `chat` 모드: 일반 텍스트로 왼쪽 채팅에만 표시. 보고서 모드: JSON 구조로 오른쪽 패널에 렌더링 |
+
+**문서 유형별 YAML 템플릿 (`engine/statics/generators.yaml`):**
+
+| 키 | 문서 유형 | 설명 |
+|---|---|---|
+| `chat` | `chat` | 가벼운 대화형 응답 (기본값). answer는 일반 텍스트 |
+| `legal_report` | `legal_report` | 법률 상담 리포트. answer는 JSON (`report_meta`, `key_issues`, `legal_grounds`, `practical_advice`, `precautions`) |
+| `lease_contract` | `lease_contract` | 임대차 계약서. answer는 JSON |
+| `sale_contract` | `sale_contract` | 매매 계약서. answer는 JSON |
+| `legal_memo` | `legal_memo` | 내용증명 / 법률 메모. answer는 JSON |
+
+> 5개 문서 유형이 단일 파일 `generators.yaml` 하나로 관리됩니다. 키별로 `v1.0.template`을 가지며 `AgentSpecLoader.load_generator_prompt(document_type)`으로 로딩합니다.
 
 ### Evaluator
 - 생성된 결과물에 대해 아래 세 가지를 검사합니다.
@@ -178,9 +190,10 @@ Dispatcher가 이를 순차적으로 실행하는 구조입니다.
 | `human_feedback` | `HumanFeedback` | HumanReviewer 내부에서 생성된 피드백 분류 결과 |
 | `evaluation_response` | `EvaluationResponse` | Evaluator 검사 결과 |
 | `circuit_check` | `CircuitCheck` | 노드별 재호출 횟수 추적 |
-| `answer` | `str` | Generator 최종 생성 결과 (Counselor 질문과 분리) |
+| `answer` | `str` | Generator 최종 생성 결과. `chat` 모드는 일반 텍스트, 보고서 모드는 JSON 문자열 |
+| `chat_message` | `str` | Generator가 생성하는 짧은 채팅 안내 메시지 (보고서 모드 전용) |
 | `retry_count` | `int` | 재시도 횟수 |
-| `consultation_context` | `ConsultationContext` | Counselor가 턴마다 누적하는 상담 정보 (문서 유형 + 동적 필드) |
+| `consultation_context` | `ConsultationContext` | `document_type` + Counselor가 턴마다 누적하는 상담 정보. Planner가 `document_type`을 초기 설정하고, Counselor가 추가 필드를 누적 |
 | `user_input` | `str` | 단일 입력 채널. `resume()`으로 주입되며 Counselor·HumanReviewer가 공유 |
 | `counselor_question` | `str` | Counselor가 프론트엔드에 전달하는 현재 질문 (`answer`와 별도 채널) |
 

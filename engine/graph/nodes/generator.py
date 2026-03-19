@@ -18,7 +18,10 @@ DEFAULT_DOCUMENT_TYPE = "chat"
 
 class Generator(LLMNode[GeneratorResponse]):
     def __init__(self, llm: BaseChatModel) -> None:
-        super().__init__(NodeType.GENERATOR, GeneratorResponse, llm)
+        # document_type별로 _run에서 직접 로드하므로 부모의 yaml 로딩은 건너뜀
+        self.key = NodeType.GENERATOR
+        self.output_type = GeneratorResponse
+        self.llm = llm.with_structured_output(GeneratorResponse)
 
     async def _run(self, state: AgentState, _config: RunnableConfig) -> dict:
         sm: StateManager = StateManager(state=state)
@@ -38,14 +41,21 @@ class Generator(LLMNode[GeneratorResponse]):
 
         document_type: str = ctx.document_type or DEFAULT_DOCUMENT_TYPE
 
+        logger.info(
+            f"[Generator] Running with document_type='{document_type}', "
+            f"refined_query='{refined_query}', feedback='{feedback}'"
+        )
+
         try:
-            prompt_template: str = AgentSpecLoader.load_prompt_by_document_type(document_type)
+            prompt_template: str = AgentSpecLoader.load_generator_prompt(document_type)
         except (FileNotFoundError, ValueError):
             logger.warning(
                 f"[Generator] Template not found for document_type='{document_type}'. "
                 f"Falling back to '{DEFAULT_DOCUMENT_TYPE}'."
             )
-            prompt_template = AgentSpecLoader.load_prompt_by_document_type(DEFAULT_DOCUMENT_TYPE)
+            prompt_template = AgentSpecLoader.load_generator_prompt(
+                DEFAULT_DOCUMENT_TYPE
+            )
 
         format_kwargs = dict(
             history=trimmed_msgs,
@@ -67,9 +77,14 @@ class Generator(LLMNode[GeneratorResponse]):
 
         response: GeneratorResponse = await self._ask_llm(prompt)
 
+        logger.info(f"[Generator] LLM response received: response='{response}")
+
         return self._create_success_response(
-            messages=[AIMessage(content=f"답변: {response.answer}")],
-            update_dict={StateKey.ANSWER: response.answer},
+            messages=[AIMessage(content=response.chat_message)],
+            update_dict={
+                StateKey.ANSWER: response.answer,
+                StateKey.CHAT_MESSAGE: response.chat_message,
+            },
         )
 
     def char_counter(self, messages: list[BaseMessage]) -> int:

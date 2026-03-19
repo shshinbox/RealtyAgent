@@ -32,8 +32,8 @@ class Initializer(BaseNode):
 
         return self._create_success_response(
             messages=[
-                SystemMessage(content=f"시스템 메시지: {self.system_prompt}"),
-                HumanMessage(content=f"요청 메시지: {raw_query}"),
+                SystemMessage(content=f"{self.system_prompt}"),
+                HumanMessage(content=f"{raw_query}"),
             ],
             update_dict={
                 StateKey.QUERY: raw_query,

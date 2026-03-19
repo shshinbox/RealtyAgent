@@ -21,6 +21,7 @@ class BaseNode(ABC):
         self, state: AgentState, config: RunnableConfig
     ) -> dict[str, Any]:
         try:
+            logger.info(f"[Node Start] {self.key}")
             return await self._run(state, config)
         except SecurityError as se:
             logger.warning(f"[Security Alert] {self.key}: {str(se)}")
