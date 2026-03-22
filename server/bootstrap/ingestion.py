@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 
+from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
+from llama_index.llms.openai import OpenAI
+from llama_index.embeddings.openai import OpenAIEmbedding
+
 from server.config import Settings
+from server.storage.qdrant_searcher import QdrantSearcher
 from ingestion.pipeline import DocumentPipeline
 from ingestion.retriever import DocumentRetriever
 
@@ -11,29 +16,26 @@ class IngestionBundle:
     retriever: DocumentRetriever
 
 
-def build_ingestion(settings: Settings) -> IngestionBundle:
-    qdrant_host: str = settings.QDRANT_HOST or ""
-    qdrant_port: int = int(settings.QDRANT_PORT or -1)
+def build_ingestion(
+    settings: Settings,
+    qdrant_searcher: QdrantSearcher,
+    graph_store: Neo4jPropertyGraphStore,
+) -> IngestionBundle:
     openai_api_key: str = settings.OPENAI_API_KEY or ""
-    neo4j_url: str = settings.NEO4J_URL or ""
-    neo4j_username: str = settings.NEO4J_USERNAME or ""
-    neo4j_password: str = settings.NEO4J_PASSWORD or ""
+    llm = OpenAI(model="gpt-5.4-mini", api_key=openai_api_key)
+    embed_model = OpenAIEmbedding(model="text-embedding-3-small", api_key=openai_api_key)
 
     return IngestionBundle(
         pipeline=DocumentPipeline(
-            qdrant_host=qdrant_host,
-            qdrant_port=qdrant_port,
-            openai_api_key=openai_api_key,
-            neo4j_url=neo4j_url,
-            neo4j_username=neo4j_username,
-            neo4j_password=neo4j_password,
+            qdrant_client=qdrant_searcher,
+            graph_store=graph_store,
+            llm=llm,
+            embed_model=embed_model,
         ),
         retriever=DocumentRetriever(
-            qdrant_host=qdrant_host,
-            qdrant_port=qdrant_port,
-            openai_api_key=openai_api_key,
-            neo4j_url=neo4j_url,
-            neo4j_username=neo4j_username,
-            neo4j_password=neo4j_password,
+            qdrant_client=qdrant_searcher,
+            graph_store=graph_store,
+            llm=llm,
+            embed_model=embed_model,
         ),
     )

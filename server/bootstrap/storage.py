@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
+
 from server.config import Settings
 from server.storage.redis_manager import RedisManager
 from server.storage.postgresql_manager import PostgreSQLManager
@@ -11,6 +13,7 @@ class StorageBundle:
     redis: RedisManager
     pg: PostgreSQLManager
     qdrant: QdrantSearcher
+    neo4j: Neo4jPropertyGraphStore
 
 
 def build_storage(settings: Settings) -> StorageBundle:
@@ -21,10 +24,17 @@ def build_storage(settings: Settings) -> StorageBundle:
             host=settings.QDRANT_HOST or "",
             port=settings.QDRANT_PORT or -1,
         ),
+        neo4j=Neo4jPropertyGraphStore(
+            username=settings.NEO4J_USERNAME or "",
+            password=settings.NEO4J_PASSWORD or "",
+            url=settings.NEO4J_URL or "",
+        ),
     )
 
 
 async def close_storage(bundle: StorageBundle) -> None:
     await bundle.redis.close()
     await bundle.pg.close()
-    await bundle.qdrant.close()
+    await bundle.qdrant.close()  # AsyncQdrantClient.close() 직접 호출
+    if hasattr(bundle.neo4j, "_driver"):
+        bundle.neo4j._driver.close()

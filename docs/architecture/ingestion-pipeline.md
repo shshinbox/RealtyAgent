@@ -34,21 +34,24 @@ ingestion/
 ```
 PDF 파일 업로드 (API) 또는 디렉토리 스캔
   ↓
-① 문서 로딩       SimpleDirectoryReader (LlamaIndex)
+① 문서 로딩       SimpleDirectoryReader (LlamaIndex) — 동기, 인라인 실행
   ↓
-② 청킹            SentenceSplitter (chunk_size=512, chunk_overlap=50)
+② 청킹            SentenceSplitter (chunk_size=512, chunk_overlap=50) — 동기, 인라인 실행
   ↓
-③ 개체/관계 추출  LLM 추출기 + 규칙 추출기 (병렬 실행)
+③ 개체/관계 추출  LLM 추출기 + 규칙 추출기 — asyncio.to_thread (sync LLM 내부 호출)
   ↓
-④-A Qdrant 저장   [collection: documents] 벡터 임베딩 저장
-④-B Neo4j 저장    추출된 개체/관계를 그래프로 저장
+④ Neo4j 저장      추출된 개체/관계를 그래프로 저장 — asyncio.to_thread (sync 드라이버)
+  ↓
+⑤ 임베딩          OpenAI Embedding API — async (aget_text_embedding_batch)
+  ↓
+⑥ Qdrant 저장     [collection: documents] 벡터 저장 — async (async_add)
 ```
 
 ---
 
 ## 개체/관계 추출기
 
-두 추출기는 `PropertyGraphIndex`의 `kg_extractors` 파라미터로 동시에 주입되며,
+두 추출기는 부트스트랩에서 주입된 LLM 인스턴스를 공유하며,
 각 추출 결과가 합산되어 Neo4j에 저장됩니다.
 
 ### LLM 추출기 (`llm_extractor.py`)
@@ -56,9 +59,11 @@ PDF 파일 업로드 (API) 또는 디렉토리 스캔
 `SimpleLLMPathExtractor` 기반. LLM이 텍스트 문맥을 이해하여
 자유로운 형태의 (주체, 관계, 대상) 트리플을 추출합니다.
 
+LLM 인스턴스는 `server/bootstrap/ingestion.py`에서 생성되어 주입됩니다.
+모델 변경이 필요한 경우 `build_ingestion()` 내부에서만 수정하면 됩니다.
+
 | 항목 | 내용 |
 |---|---|
-| 모델 | `gpt-4o-mini` |
 | 추출 단위 | 청크당 최대 10개 경로 |
 | 강점 | 복잡한 문맥, 예상치 못한 관계 파악 |
 | 약점 | API 비용 발생, 가끔 환각 가능성 |

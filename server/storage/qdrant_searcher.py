@@ -1,6 +1,8 @@
-from typing import List, Dict, Any, Optional
-from qdrant_client.conversions import common_types as types
+import asyncio
+from typing import List, Dict, Any
+
 from qdrant_client import AsyncQdrantClient
+from qdrant_client.conversions import common_types as types
 from qdrant_client.models import (
     Distance,
     VectorParams,
@@ -8,31 +10,21 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
-    SearchParams,
-    ScoredPoint,
 )
-import asyncio
 
 
-class QdrantSearcher:
-    def __init__(
-        self,
-        host: str,
-        port: int,
-    ):
+class QdrantSearcher(AsyncQdrantClient):
+    def __init__(self, host: str, port: int):
         if not host or not port or port <= 0:
             raise ValueError("host and port are required")
-
-        self.client = AsyncQdrantClient(
-            host=host,
-            port=port,
-        )
+        super().__init__(host=host, port=port)
 
     async def create_collection(
         self,
         collection_name: str,
         vector_size: int,
         distance: Distance = Distance.COSINE,
+        **kwargs,
     ):
         """
         컬렉션 생성
@@ -42,11 +34,10 @@ class QdrantSearcher:
             vector_size: 벡터 차원
             distance: 거리 측정 방법 (COSINE, EUCLID, DOT)
         """
-        await self.client.create_collection(
+        await super().create_collection(
             collection_name=collection_name,
             vectors_config=VectorParams(size=vector_size, distance=distance),
         )
-        print(f"컬렉션 '{collection_name}' 생성 완료")
 
     async def insert_documents(
         self, collection_name: str, documents: List[Dict[str, Any]]
@@ -65,9 +56,7 @@ class QdrantSearcher:
             )
             for doc in documents
         ]
-
-        await self.client.upsert(collection_name=collection_name, points=points)
-        print(f"{len(documents)}개 문서 삽입 완료")
+        await self.upsert(collection_name=collection_name, points=points)
 
     async def search_similar_docs(
         self,
@@ -76,31 +65,22 @@ class QdrantSearcher:
         top_k: int = 5,
         filter: Filter | None = None,
         with_payload: bool = True,
-    ):
+    ) -> List[Dict[str, Any]]:
         """
         qdrant_client.query_points를 사용한 유사도 검색 함수
         """
-
-        response: types.QueryResponse = await self.client.query_points(
+        response: types.QueryResponse = await self.query_points(
             collection_name=collection_name,
             query=query_vector,
             limit=top_k,
             query_filter=filter,
             with_payload=with_payload,
-            with_vectors=False,  # 벡터 필요없으면 False
+            with_vectors=False,
         )
-
-        results = []
-        for point in response.points:
-            results.append(
-                {
-                    "id": point.id,
-                    "score": point.score,
-                    "payload": point.payload,
-                }
-            )
-
-        return results
+        return [
+            {"id": point.id, "score": point.score, "payload": point.payload}
+            for point in response.points
+        ]
 
     async def search_with_metadata_filter(
         self,
@@ -131,7 +111,6 @@ class QdrantSearcher:
                 for i in range(len(metadata_fields))
             ]
         )
-
         return await self.search_similar_docs(
             collection_name=collection_name,
             query_vector=query_vector,
@@ -155,13 +134,8 @@ class QdrantSearcher:
         """
         tasks = [
             self.search_similar_docs(
-                collection_name=collection_name, query_vector=query_vector, top_k=limit
+                collection_name=collection_name, query_vector=qv, top_k=limit
             )
-            for query_vector in query_vectors
+            for qv in query_vectors
         ]
-
-        results = await asyncio.gather(*tasks)
-        return results
-
-    async def close(self):
-        await self.client.close()
+        return await asyncio.gather(*tasks)

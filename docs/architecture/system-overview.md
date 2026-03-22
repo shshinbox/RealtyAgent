@@ -145,9 +145,9 @@ server/service/external_deps_service.py (ExternalDeps)
 server/bootstrap/
   settings.py    APP_ENV 기반 .env 파일 로딩
   llm.py         NodeType → ChatOpenAI 모델 매핑
-  storage.py     Redis / PostgreSQL / Qdrant 초기화 및 종료
+  storage.py     Redis / PostgreSQL / Qdrant(QdrantSearcher) / Neo4j 초기화 및 종료
   engine.py      SQLite checkpointer + GraphEngine 조합
-  ingestion.py   DocumentPipeline + DocumentRetriever 조합
+  ingestion.py   LLM·EmbedModel 생성 후 DocumentPipeline + DocumentRetriever 조합
 ```
 
 ---

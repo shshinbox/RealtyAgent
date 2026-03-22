@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
     storage = build_storage(settings)
     engine_bundle = await build_engine(build_llm_map(settings))
-    ingestion = build_ingestion(settings)
+    ingestion = build_ingestion(settings, storage.qdrant, storage.neo4j)
 
     app.state.settings = settings
     app.state.engine = engine_bundle.engine
