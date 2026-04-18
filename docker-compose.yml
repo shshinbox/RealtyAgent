@@ -75,26 +75,28 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test: ["CMD-SHELL", "ls /qdrant/storage/raft_state.json || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
     restart: unless-stopped
 
   neo4j:
     image: neo4j:5
     environment:
       NEO4J_AUTH: neo4j/realty1234
+      NEO4J_PLUGINS: '["apoc"]' # APOC 플러그인 설치
+      NEO4J_dbms_security_procedures_unrestricted: 'apoc.*' # 보안 제한 해제
     ports:
       - "7474:7474"
       - "7687:7687"
     volumes:
       - neo4j_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:7474 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD", "neo4j-admin", "server", "status"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
     restart: unless-stopped
 
 volumes:
