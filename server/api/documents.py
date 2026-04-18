@@ -34,6 +34,18 @@ async def upload_document(
     return {"filename": file.filename, "chunks_stored": chunk_count}
 
 
+async def _ingest_one(pipeline, user_id: str, file: UploadFile) -> dict:
+    try:
+        chunk_count = await pipeline.ingest(
+            file_bytes=await file.read(),
+            filename=file.filename,
+            metadata={"uploaded_by": user_id, "filename": file.filename},
+        )
+        return {"filename": file.filename, "chunks_stored": chunk_count, "status": "ok"}
+    except Exception as e:
+        return {"filename": file.filename, "chunks_stored": 0, "status": f"error: {e}"}
+
+
 @router.post("/upload/batch")
 async def upload_documents(
     request: Request,
@@ -45,18 +57,7 @@ async def upload_documents(
 
     pipeline = request.app.state.pipeline
 
-    async def _ingest_one(file: UploadFile) -> dict:
-        try:
-            chunk_count = await pipeline.ingest(
-                file_bytes=await file.read(),
-                filename=file.filename,
-                metadata={"uploaded_by": user_id, "filename": file.filename},
-            )
-            return {"filename": file.filename, "chunks_stored": chunk_count, "status": "ok"}
-        except Exception as e:
-            return {"filename": file.filename, "chunks_stored": 0, "status": f"error: {e}"}
-
-    results = await asyncio.gather(*[_ingest_one(f) for f in files])
+    results = await asyncio.gather(*[_ingest_one(pipeline, user_id, f) for f in files])
     total_chunks = sum(r["chunks_stored"] for r in results)
 
     return {"total_files": len(files), "total_chunks": total_chunks, "files": list(results)}

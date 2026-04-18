@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Git
+.git/
+.gitignore
+
+# Env files (docker-compose에서 직접 주입)
+server/.env
+server/.env.local
+
+# DB / 로그 (컨테이너 내부에서 생성)
+checkpoints.db
+checkpoints.db-shm
+checkpoints.db-wal
+logs/
+
+# 문서 / 테스트
+docs/
+test/
+server/test/
+worker/test/
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+
+# 기타
+README.md

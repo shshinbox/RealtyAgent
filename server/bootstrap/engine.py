@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import os
 from typing import Dict
 
 import aiosqlite
@@ -8,6 +9,9 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from engine import GraphEngine
 from engine.graph.schema import NodeType
 
+_CHECKPOINTS_DIR = os.getenv("CHECKPOINTS_DIR", ".")
+_CHECKPOINTS_PATH = os.path.join(_CHECKPOINTS_DIR, "checkpoints.db")
+
 
 @dataclass
 class EngineBundle:
@@ -16,7 +20,8 @@ class EngineBundle:
 
 
 async def build_engine(llm_map: Dict[NodeType, BaseChatModel]) -> EngineBundle:
-    sqlite_conn = await aiosqlite.connect("checkpoints.db")
+    os.makedirs(_CHECKPOINTS_DIR, exist_ok=True)
+    sqlite_conn = await aiosqlite.connect(_CHECKPOINTS_PATH)
     checkpointer = AsyncSqliteSaver(sqlite_conn)
     await checkpointer.setup()
 
